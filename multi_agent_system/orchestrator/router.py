@@ -80,7 +80,7 @@ def route(message: str, history: Optional[List[Dict]] = None) -> RoutingDecision
             messages=messages,
             response_format={"type": "json_object"},
             temperature=0.0,
-            max_tokens=256,
+            max_completion_tokens=256,
         )
         raw = response.choices[0].message.content or "{}"
         data = json.loads(raw)

@@ -72,7 +72,7 @@ class BaseAgent(ABC):
                 tools=tools or None,
                 tool_choice="auto" if tools else "none",
                 temperature=0.3,
-                max_tokens=1024,
+                max_completion_tokens=1024,
             )
             choice = response.choices[0]
 
@@ -141,7 +141,7 @@ class BaseAgent(ABC):
                 tools=tools or None,
                 tool_choice="auto" if tools else "none",
                 temperature=0.3,
-                max_tokens=1024,
+                max_completion_tokens=1024,
                 stream=True,
             )
 
