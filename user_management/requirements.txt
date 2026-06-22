@@ -1,0 +1,7 @@
+fastapi==0.111.0          # Web framework — handles routing, validation, OpenAPI docs
+uvicorn[standard]==0.29.0  # ASGI server — runs the FastAPI app
+sqlalchemy==2.0.30         # ORM — maps Python classes to database tables
+pydantic[email]==2.7.1     # Data validation — validates request/response shapes
+python-jose[cryptography]==3.3.0  # JWT tokens — for login sessions
+passlib[bcrypt]==1.7.4     # Password hashing — bcrypt is the gold standard
+python-multipart==0.0.9    # Required by FastAPI to parse form data
