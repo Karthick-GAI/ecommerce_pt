@@ -1,0 +1,833 @@
+<title>Design Decisions &amp; Trade-offs — AI E-Commerce Platform</title>
+<style>
+:root {
+  --ground: #ECEEF3;
+  --surface: #FFFFFF;
+  --text: #1B2033;
+  --text-muted: #5E6576;
+  --accent: #2B54D8;
+  --accent-dim: rgba(43,84,216,0.07);
+  --accent-mid: rgba(43,84,216,0.18);
+  --warn: #B8935A;
+  --warn-dim: rgba(184,147,90,0.10);
+  --border: rgba(27,32,51,0.08);
+  --radius: 8px;
+  --mono: "Courier New", Courier, monospace;
+  --body: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* NAV */
+.nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(236,238,243,0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 2rem;
+  height: 48px;
+  display: flex; align-items: center; gap: 1.5rem;
+}
+.nav-brand {
+  font-family: var(--mono);
+  font-size: 13px; font-weight: bold;
+  color: var(--accent); text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.nav-links {
+  display: flex; gap: 1.5rem; list-style: none; margin-left: auto;
+}
+.nav-links a {
+  font-size: 11px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--text-muted); text-decoration: none;
+}
+.nav-links a:hover { color: var(--accent); }
+
+/* HERO */
+.hero {
+  padding: 4.5rem 2rem 3.5rem;
+  max-width: 840px; margin: 0 auto;
+}
+.hero-eyebrow {
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 1.25rem;
+}
+.hero-h1 {
+  font-family: var(--mono);
+  font-size: clamp(26px, 4vw, 42px);
+  font-weight: bold; line-height: 1.18;
+  color: var(--text); margin-bottom: 1.25rem;
+}
+.hero-typed {
+  display: inline-block;
+  overflow: hidden; white-space: nowrap;
+  border-right: 3px solid var(--accent);
+  animation:
+    typewriter 1.8s steps(34, end) 0.2s both,
+    blink-cur 1.1s step-end 2.0s infinite;
+}
+@keyframes typewriter {
+  from { width: 0; }
+  to   { width: 100%; }
+}
+@keyframes blink-cur {
+  0%, 100% { border-color: var(--accent); }
+  50%      { border-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-typed { animation: none; border-right: none; }
+}
+.hero-sub {
+  font-size: 16px; line-height: 1.7;
+  color: var(--text-muted);
+  max-width: 560px; margin-bottom: 2.5rem;
+}
+.hero-stats {
+  display: flex; gap: 2.5rem; flex-wrap: wrap;
+}
+.stat { display: flex; flex-direction: column; gap: 3px; }
+.stat-n {
+  font-family: var(--mono);
+  font-size: clamp(18px, 2.5vw, 26px);
+  font-weight: bold; color: var(--text); line-height: 1;
+}
+.stat-l {
+  font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text-muted);
+}
+
+/* CATEGORY */
+.cat {
+  max-width: 840px; margin: 0 auto 3.5rem;
+  padding: 0 2rem;
+}
+.cat-hdr {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-bottom: 1.25rem; padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border);
+}
+.cat-tag {
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--accent); background: var(--accent-dim);
+  padding: 3px 8px; border-radius: 3px;
+}
+.cat-name {
+  font-size: 12px; font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--text-muted);
+}
+.cards { display: flex; flex-direction: column; gap: 1.25rem; }
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.card-hd {
+  padding: 1.1rem 1.5rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+}
+.card-num {
+  font-family: var(--mono); font-size: 10px;
+  color: var(--text-muted); letter-spacing: 0.06em;
+  margin-bottom: 0.35rem;
+}
+.card-title {
+  font-family: var(--mono);
+  font-size: clamp(14px, 2vw, 18px);
+  font-weight: bold; color: var(--text);
+}
+.card-title .var { color: var(--text-muted); font-weight: 400; }
+.card-title .eq  { color: var(--text-muted); font-weight: 400; }
+.card-title .val { color: var(--accent); }
+.card-badge {
+  flex-shrink: 0;
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--accent); background: var(--accent-dim);
+  border: 1px solid var(--accent-mid);
+  padding: 3px 10px; border-radius: 20px; margin-top: 3px;
+}
+.card-bd { padding: 1.1rem 1.5rem; }
+.card-why {
+  font-size: 14px; line-height: 1.72; color: var(--text);
+  margin-bottom: 0.9rem;
+}
+.card-why code {
+  font-family: var(--mono); font-size: 0.87em;
+  background: var(--ground); padding: 1px 5px; border-radius: 3px;
+}
+.tradeoff {
+  background: var(--warn-dim);
+  border-left: 3px solid var(--warn);
+  border-radius: 0 4px 4px 0;
+  padding: 0.7rem 1rem; margin-bottom: 0.85rem;
+  font-size: 13px; line-height: 1.65; color: var(--text);
+}
+.tradeoff-lbl {
+  display: block; margin-bottom: 0.25rem;
+  font-size: 10px; font-weight: 800;
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--warn);
+}
+.rejected {
+  display: flex; align-items: center;
+  flex-wrap: wrap; gap: 0.4rem;
+}
+.rej-lbl {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--text-muted); margin-right: 0.1rem;
+}
+.rej-chip {
+  font-size: 11px; color: var(--text-muted);
+  background: var(--ground); border: 1px solid var(--border);
+  padding: 2px 9px; border-radius: 20px;
+}
+
+/* SUMMARY */
+.summary {
+  max-width: 840px; margin: 0 auto 5rem;
+  padding: 0 2rem;
+}
+.summary-h2 {
+  font-family: var(--mono); font-size: 20px;
+  font-weight: bold; color: var(--text);
+  margin-bottom: 1.25rem;
+}
+.tbl-wrap { overflow-x: auto; }
+.tbl {
+  width: 100%; border-collapse: collapse;
+  font-size: 12px; min-width: 600px;
+}
+.tbl th {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.10em; text-transform: uppercase;
+  color: var(--text-muted); text-align: left;
+  padding: 0.5rem 0.875rem;
+  border-bottom: 2px solid var(--border);
+  background: var(--surface); white-space: nowrap;
+}
+.tbl td {
+  padding: 0.55rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface); vertical-align: top;
+  line-height: 1.5;
+}
+.tbl tr:hover td { background: #f7f8fb; }
+.chosen { font-family: var(--mono); color: var(--accent); font-weight: bold; font-size: 11px; }
+.prod   { color: var(--text-muted); font-style: italic; }
+
+/* FOOTER */
+footer {
+  max-width: 840px; margin: 0 auto;
+  padding: 1.25rem 2rem 3rem;
+  font-size: 11px; color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .hero, .cat, .summary { padding: 0 1.25rem; }
+  .hero { padding-top: 2.5rem; padding-bottom: 2.5rem; }
+  .nav-links { display: none; }
+  .hero-stats { gap: 1.5rem; }
+}
+</style>
+
+<nav class="nav" aria-label="Page navigation">
+  <a class="nav-brand" href="#">DESIGN_DECISIONS.md</a>
+  <ul class="nav-links">
+    <li><a href="#data">Data</a></li>
+    <li><a href="#ai">AI &amp; Models</a></li>
+    <li><a href="#comms">Communication</a></li>
+    <li><a href="#reliability">Reliability</a></li>
+    <li><a href="#platform">Platform</a></li>
+    <li><a href="#summary">Summary</a></li>
+  </ul>
+</nav>
+
+<header class="hero">
+  <p class="hero-eyebrow">AI E-Commerce Platform &mdash; Capstone</p>
+  <h1 class="hero-h1"><span class="hero-typed">13 decisions. Deliberately made.</span></h1>
+  <p class="hero-sub">
+    Every architectural choice had alternatives. This document states what we chose,
+    why we chose it, and exactly what we gave up.
+  </p>
+  <div class="hero-stats">
+    <div class="stat">
+      <span class="stat-n">13</span>
+      <span class="stat-l">Decisions documented</span>
+    </div>
+    <div class="stat">
+      <span class="stat-n">5</span>
+      <span class="stat-l">Architecture layers</span>
+    </div>
+    <div class="stat">
+      <span class="stat-n">pgvector</span>
+      <span class="stat-l">Vector store</span>
+    </div>
+    <div class="stat">
+      <span class="stat-n">gpt&#8209;5.4&#8209;mini</span>
+      <span class="stat-l">Primary LLM</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ═══════════════════════ DATA LAYER ═══════════════════════ -->
+<section class="cat" id="data">
+  <div class="cat-hdr">
+    <span class="cat-tag">01</span>
+    <span class="cat-name">Data Layer</span>
+  </div>
+  <div class="cards">
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D01</div>
+          <div class="card-title">
+            <span class="var">VECTOR_STORE</span><span class="eq"> = </span><span class="val">pgvector</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          Product embeddings (1536-dim) live in a <code>Vector</code> column on the PostgreSQL
+          <code>products</code> table via the <code>pgvector</code> extension. The decisive advantage
+          is query composability: hard SQL filters — price cap, in-stock flag, category — execute
+          in the <em>same query</em> as the ANN ranking using the <code>&lt;=&gt;</code> cosine
+          operator. A dedicated vector DB would require a two-phase approach (pre-filter in SQL,
+          re-rank in vector DB), adding a network hop and a consistency gap between the two stores.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          pgvector is not optimised for millions of vectors across tenants. A production catalogue
+          exceeding ~500K products should migrate to a managed vector service. The embedding
+          generation code does not change — only the storage backend.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Pinecone ×</span>
+          <span class="rej-chip">Weaviate ×</span>
+          <span class="rej-chip">Qdrant ×</span>
+          <span class="rej-chip">ChromaDB ×</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D02</div>
+          <div class="card-title">
+            <span class="var">DATABASE</span><span class="eq"> = </span><span class="val">postgresql + sqlite</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          Twelve business-domain services share a single PostgreSQL instance — required for
+          <code>pgvector</code> and cross-service analytics joins. The two auth services,
+          <code>user_management</code> and <code>seller_portal</code>, run on isolated SQLite
+          databases, keeping credential data physically separated from product and order tables
+          without the overhead of a second PostgreSQL instance for the capstone.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          SQLite does not support concurrent writes. Under high registration load the write-lock
+          becomes a bottleneck. Production fix: promote auth stores to PostgreSQL schemas with
+          PgBouncer connection pooling.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">MongoDB ×</span>
+          <span class="rej-chip">Per-service PostgreSQL ×</span>
+          <span class="rej-chip">Single shared SQLite ×</span>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════ AI & MODELS ═══════════════════════ -->
+<section class="cat" id="ai">
+  <div class="cat-hdr">
+    <span class="cat-tag">02</span>
+    <span class="cat-name">AI &amp; Models</span>
+  </div>
+  <div class="cards">
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D03</div>
+          <div class="card-title">
+            <span class="var">LLM_MODEL</span><span class="eq"> = </span><span class="val">gpt&#8209;5.4&#8209;mini</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          All LLM tasks — RAG generation, NL query parsing, multi-agent reasoning, guardrail
+          judging — use <code>gpt-5.4-mini</code> on Azure OpenAI. It hits P95 RAG latency
+          of 2.3s (within the 3s NFR target) at roughly one-fifth the cost of GPT-4o, and
+          produces reliable structured JSON without brittle post-processing. Azure deployment
+          keeps data in-region and provides an enterprise SLA.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          Azure OpenAI vendor lock-in: every AI call depends on Azure availability. Mitigated
+          by the circuit breaker — if Azure is unavailable, the shopping assistant returns raw
+          vector-search results without GPT augmentation.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">GPT-4o (5× cost, marginal gain) ×</span>
+          <span class="rej-chip">GPT-3.5-turbo (weaker JSON) ×</span>
+          <span class="rej-chip">Llama 3 self-hosted (no GPU) ×</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D04</div>
+          <div class="card-title">
+            <span class="var">EMBEDDING_MODEL</span><span class="eq"> = </span><span class="val">text&#8209;embedding&#8209;3&#8209;small</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          <code>text-embedding-3-small</code> at 1536 dimensions costs $0.02 per million tokens —
+          6.5× cheaper than <code>ada-002</code> with slightly better MTEB quality (62.3% vs 61.0%).
+          Embedding all 5,000 products cost under $0.01. The 2.3-point gap between
+          <code>3-small</code> and <code>3-large</code> was indistinguishable in user-facing
+          search results for a single-language English/Hindi catalogue.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          <code>text-embedding-3-large</code> scores 2.3 MTEB points higher. In cross-lingual or
+          highly ambiguous query scenarios, this gap becomes visible. The cost differential
+          (6.5×) outweighs the quality gain at capstone scale.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">text-embedding-3-large (6.5× cost) ×</span>
+          <span class="rej-chip">ada-002 (worse + more expensive) ×</span>
+          <span class="rej-chip">Sentence-transformers local ×</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D05</div>
+          <div class="card-title">
+            <span class="var">RECOMMENDER</span><span class="eq"> = </span><span class="val">hybrid_adaptive</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          Three signals are blended with weights that shift by user maturity: user-based
+          collaborative filtering (purchase graph), content-based similarity (pgvector cosine
+          on product embeddings), and trending scores. Cold-start users receive trending-heavy
+          results; active users (5+ purchases) receive CF-heavy results. Leave-one-out
+          cross-validation on 50K orders: hybrid adaptive Hit@10 = <strong>0.78</strong>
+          vs CF-only = 0.67 vs fixed-weight hybrid = 0.74.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          Weight thresholds ("5+ purchases = active") were set heuristically. The item-similarity
+          matrix is pre-computed in a manual batch job — recommendation quality degrades as the
+          purchase graph grows stale between runs. A production system would run nightly recomputes
+          and learn weights via bandit or A/B testing.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Pure CF (cold-start fails) ×</span>
+          <span class="rej-chip">Pure content-based ×</span>
+          <span class="rej-chip">Fixed-weight hybrid ×</span>
+          <span class="rej-chip">Neural CF (no training pipeline) ×</span>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════ COMMUNICATION ═══════════════════════ -->
+<section class="cat" id="comms">
+  <div class="cat-hdr">
+    <span class="cat-tag">03</span>
+    <span class="cat-name">Service Communication</span>
+  </div>
+  <div class="cards">
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D06</div>
+          <div class="card-title">
+            <span class="var">SERVICE_COMMS</span><span class="eq"> = </span><span class="val">sync_http</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          All inter-service calls use synchronous HTTP via <code>httpx</code> with a 2s timeout.
+          The primary user journeys — checkout, product search, recommendation — are
+          request-response flows where the UI is waiting for a result. Async messaging adds
+          latency and operational complexity without reducing it for these flows.
+          The circuit breaker fast-fails after 5 consecutive downstream failures, containing
+          cascade without a message broker.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          Tight temporal coupling: if <code>inventory_service</code> is slow, checkout is slow.
+          In production the order → payment → fulfilment flow belongs on Kafka topics
+          (<code>order.created</code>, <code>payment.confirmed</code>) to decouple services
+          and guarantee delivery under failure.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Kafka ×</span>
+          <span class="rej-chip">RabbitMQ ×</span>
+          <span class="rej-chip">gRPC ×</span>
+          <span class="rej-chip">Celery + Redis ×</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D07</div>
+          <div class="card-title">
+            <span class="var">MESSAGE_BROKER</span><span class="eq"> = </span><span class="val">none</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          No broker is deployed. The one flow that genuinely requires async delivery —
+          payment confirmation — is handled by Razorpay and Shiprocket webhooks: they push
+          HTTP POST on state change, which is already an async push model. Adding a broker
+          would insert an extra hop without improving the delivery guarantee. The
+          <code>payment_id</code> is the natural idempotency key for webhook retries.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          If Shiprocket is slow, the webhook handler blocks, and Razorpay may retry. In
+          production the handler would publish <code>order.paid</code> to Kafka, return 200
+          immediately, and a consumer would handle Shiprocket booking with configurable retries.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Kafka (Zookeeper overhead) ×</span>
+          <span class="rej-chip">RabbitMQ ×</span>
+          <span class="rej-chip">Azure Service Bus ×</span>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════ RELIABILITY ═══════════════════════ -->
+<section class="cat" id="reliability">
+  <div class="cat-hdr">
+    <span class="cat-tag">04</span>
+    <span class="cat-name">Reliability &amp; Resilience</span>
+  </div>
+  <div class="cards">
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D08</div>
+          <div class="card-title">
+            <span class="var">CACHE_STRATEGY</span><span class="eq"> = </span><span class="val">db_persisted_targeted</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          No distributed cache was introduced. Three targeted patterns replace it:
+          (1) <strong>Idempotency cache</strong> — completed checkout responses persisted in
+          <code>checkout_idempotency_keys</code> (PostgreSQL), committed atomically with the
+          <code>Order</code> row so correctness survives a service restart.
+          (2) <strong>Product embeddings</strong> — pre-computed at ingest, reused at every query.
+          (3) <strong>Circuit breaker state</strong> — in-process memory per service instance.
+          PostgreSQL P95 query time held below 50ms at 100 concurrent users in load testing.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          In-process rate-limit counters and circuit breaker state do not aggregate across
+          replicas. At 50K concurrent users, Redis becomes mandatory for shared counters
+          and hot-catalogue page caching. <code>slowapi</code> is already configurable with
+          <code>storage_uri="redis://..."</code> when deployment grows.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Redis response cache ×</span>
+          <span class="rej-chip">Memcached ×</span>
+          <span class="rej-chip">Redis for idempotency (non-atomic with DB) ×</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D09</div>
+          <div class="card-title">
+            <span class="var">CIRCUIT_BREAKER</span><span class="eq"> = </span><span class="val">in_process</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          Circuit breaker state (CLOSED → OPEN → HALF_OPEN) lives in-process using
+          <code>threading.Lock</code> and module-level singletons in
+          <code>nfr/circuit_breaker.py</code>. Each service registers named breakers per
+          downstream dependency. After <code>failure_threshold</code> (default 5) consecutive
+          failures the circuit opens and fast-fails further calls. After
+          <code>recovery_timeout</code> (default 30s) a single probe request is attempted;
+          success closes the circuit, failure re-opens it.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          State does not survive process restart and does not aggregate across replicas.
+          Two instances of <code>checkout_service</code> each maintain independent breaker
+          state — one could be OPEN while the other is CLOSED. Production fix: externalise
+          to Redis using <code>pybreaker</code> with a Redis storage backend.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Redis-backed pybreaker ×</span>
+          <span class="rej-chip">Resilience4j (JVM) ×</span>
+          <span class="rej-chip">No circuit breaker ×</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D10</div>
+          <div class="card-title">
+            <span class="var">IDEMPOTENCY</span><span class="eq"> = </span><span class="val">db_persisted_header</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          Checkout accepts an <code>Idempotency-Key</code> request header. The key, endpoint,
+          serialised response body, and status code are written to
+          <code>checkout_idempotency_keys</code> in the same PostgreSQL transaction as the
+          <code>Order</code> row. Replaying the same key returns the original response — correct
+          even after a service restart because the record is durable in the DB.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          Every new checkout adds a DB write for the idempotency record. This is intentional:
+          atomicity with the order row is non-negotiable for financial operations. A Redis TTL
+          key would be faster but risks losing the record before AOF flush, breaking the guarantee
+          exactly when it matters most.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Redis TTL key ×</span>
+          <span class="rej-chip">No idempotency (duplicate orders) ×</span>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════ PLATFORM ═══════════════════════ -->
+<section class="cat" id="platform">
+  <div class="cat-hdr">
+    <span class="cat-tag">05</span>
+    <span class="cat-name">Platform Design</span>
+  </div>
+  <div class="cards">
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D11</div>
+          <div class="card-title">
+            <span class="var">SERVICE_GRANULARITY</span><span class="eq"> = </span><span class="val">13_microservices</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          13 independent FastAPI services, each with its own port and
+          <code>requirements.txt</code>, map to distinct business capabilities with separate
+          data ownership and scaling profiles. AI-heavy services
+          (<code>shopping_assistant</code>, <code>multi_agent_system</code>) are CPU/memory-bound;
+          transactional services (<code>checkout_service</code>, <code>inventory_service</code>)
+          are IO-bound. Separate deployment enables separate scaling targets.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          Operational complexity: 13 processes to start, monitor, and debug locally. No API
+          gateway means rate limiting, auth enforcement, and TLS termination are reimplemented
+          per-service via the shared <code>nfr/</code> module rather than centralised at the edge.
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Monolith ×</span>
+          <span class="rej-chip">4–5 coarse services ×</span>
+          <span class="rej-chip">Serverless functions ×</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D12</div>
+          <div class="card-title">
+            <span class="var">AUTH</span><span class="eq"> = </span><span class="val">stateless_jwt</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          Short-lived JWT access tokens (15 min) with 7-day refresh tokens via
+          <code>python-jose</code>. Each service validates tokens independently using the shared
+          secret — no round-trip to <code>user_management</code> per request, no session store.
+          Separate JWT namespaces (distinct <code>iss</code> claims and secrets) for B2C users
+          and B2B sellers prevent cross-namespace token reuse.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          Immediate revocation is impossible without a denylist. A stolen access token stays
+          valid for up to 15 minutes. The short TTL is a deliberate risk calibration — short
+          enough to limit exposure, long enough to avoid excess refresh calls. Production systems
+          add a Redis denylist for critical revocation (account takeover, admin force-logout).
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Server-side sessions + Redis ×</span>
+          <span class="rej-chip">OAuth2 / OIDC (over-engineered for capstone) ×</span>
+          <span class="rej-chip">API-key-only auth ×</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="card">
+      <div class="card-hd">
+        <div>
+          <div class="card-num">D13</div>
+          <div class="card-title">
+            <span class="var">RATE_LIMITING</span><span class="eq"> = </span><span class="val">slowapi_in_process</span>
+          </div>
+        </div>
+        <span class="card-badge">Chosen ✓</span>
+      </div>
+      <div class="card-bd">
+        <p class="card-why">
+          Per-IP rate limiting on auth endpoints using <code>slowapi</code>: 3/min on register,
+          5/min on login, 20/min on token refresh. This directly addresses the account-takeover
+          NFR with no additional infrastructure. The guardrails service runs as a dedicated
+          microservice (port 8009) rather than inline middleware, making AI I/O safety reusable
+          across <code>shopping_assistant</code>, <code>tool_calling_agent</code>, and
+          <code>multi_agent_system</code> without code duplication.
+        </p>
+        <div class="tradeoff">
+          <span class="tradeoff-lbl">⚖ Trade-off accepted</span>
+          In-process counters do not aggregate across replicas — two instances of
+          <code>user_management</code> each allow 5 logins/min from the same IP, doubling the
+          effective limit. Production fix: <code>storage_uri="redis://..."</code> in slowapi
+          config, or centralise enforcement at an API gateway (Kong, AWS API Gateway).
+        </div>
+        <div class="rejected">
+          <span class="rej-lbl">Rejected</span>
+          <span class="rej-chip">Kong API Gateway ×</span>
+          <span class="rej-chip">nginx rate-limit module ×</span>
+          <span class="rej-chip">AWS API Gateway ×</span>
+          <span class="rej-chip">No rate limiting ×</span>
+        </div>
+      </div>
+    </article>
+
+  </div>
+</section>
+
+</main>
+
+<!-- SUMMARY -->
+<section class="summary" id="summary">
+  <h2 class="summary-h2">// decision_matrix[13]</h2>
+  <div class="tbl-wrap">
+    <table class="tbl">
+      <thead>
+        <tr>
+          <th scope="col">#</th>
+          <th scope="col">Decision</th>
+          <th scope="col">Chosen</th>
+          <th scope="col">Key reason</th>
+          <th scope="col">Production path</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>D01</td><td>Vector store</td><td class="chosen">pgvector</td><td>SQL + ANN in one query</td><td class="prod">Pinecone / Qdrant at &gt;500K products</td></tr>
+        <tr><td>D02</td><td>Database</td><td class="chosen">PostgreSQL + SQLite</td><td>pgvector requires PG; auth isolation</td><td class="prod">Per-service PG schemas + PgBouncer</td></tr>
+        <tr><td>D03</td><td>LLM model</td><td class="chosen">gpt-5.4-mini</td><td>Best cost/quality; P95 &lt; 3s</td><td class="prod">Fine-tuned domain model</td></tr>
+        <tr><td>D04</td><td>Embedding model</td><td class="chosen">text-embedding-3-small</td><td>6.5× cheaper than ada-002</td><td class="prod">3-large for multilingual queries</td></tr>
+        <tr><td>D05</td><td>Recommender</td><td class="chosen">Hybrid adaptive</td><td>Hit@10 0.78 vs CF-only 0.67</td><td class="prod">Meta-learner / bandit for weights</td></tr>
+        <tr><td>D06</td><td>Service comms</td><td class="chosen">Sync HTTP</td><td>Request-response UX; simpler failure</td><td class="prod">Kafka for order/payment flow</td></tr>
+        <tr><td>D07</td><td>Message broker</td><td class="chosen">None</td><td>Webhooks handle async naturally</td><td class="prod">Kafka — order.created, payment.confirmed</td></tr>
+        <tr><td>D08</td><td>Caching</td><td class="chosen">DB-persisted (targeted)</td><td>PG P95 &lt; 50ms; one less component</td><td class="prod">Redis for counters + hot pages</td></tr>
+        <tr><td>D09</td><td>Circuit breaker</td><td class="chosen">In-process threading</td><td>Single instance; zero extra deps</td><td class="prod">Redis-backed pybreaker across replicas</td></tr>
+        <tr><td>D10</td><td>Idempotency</td><td class="chosen">DB-persisted header key</td><td>Atomic with Order row; crash-safe</td><td class="prod">Same — DB is correct for finance</td></tr>
+        <tr><td>D11</td><td>Service granularity</td><td class="chosen">13 microservices</td><td>Independent AI vs transactional scale</td><td class="prod">k8s HPA per service + API gateway</td></tr>
+        <tr><td>D12</td><td>Authentication</td><td class="chosen">Stateless JWT</td><td>No session store; horizontal scale</td><td class="prod">JWT + Redis denylist for revocation</td></tr>
+        <tr><td>D13</td><td>Rate limiting</td><td class="chosen">slowapi in-process</td><td>Zero infra; meets anti-brute-force NFR</td><td class="prod">API gateway or Redis-backed counters</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<footer>
+  AI E-Commerce Platform &nbsp;·&nbsp; Capstone &nbsp;·&nbsp; 13 decisions documented &nbsp;·&nbsp; 2026
+</footer>
