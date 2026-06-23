@@ -1,0 +1,5 @@
+# Reinstalled by `npm ci` inside the build stage
+node_modules/
+
+# Previous build output — rebuilt from source inside the container
+dist/

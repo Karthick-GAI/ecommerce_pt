@@ -1,0 +1,312 @@
+# E-Commerce AI Platform — Docker Compose
+#
+# USAGE
+#   # 1. Copy and fill in credentials
+#   cp .env.example .env
+#
+#   # 2. Start everything (first run builds images; ~5 min)
+#   docker compose up --build
+#
+#   # 3. Open in browser
+#   #    Frontend:         http://localhost:3000
+#   #    API docs (any):   http://localhost:8000/docs  (change port for other services)
+#
+#   # 4. Seed product data + generate embeddings (requires Azure OpenAI key in .env)
+#   docker compose exec product_catalogue python seed_data.py
+#   docker compose exec product_catalogue python generate_dataset.py
+#
+#   # Stop and remove containers (data volumes are kept)
+#   docker compose down
+#
+#   # Wipe all persistent data
+#   docker compose down -v
+#
+# PORT MAP
+#   3000  frontend (nginx)
+#   5432  postgres
+#   8000  user_management
+#   8001  product_catalogue
+#   8002  shopping_assistant
+#   8003  checkout_service
+#   8004  order_management
+#   8005  inventory_service
+#   8006  recommendation_engine
+#   8007  tool_calling_agent
+#   8008  session_service
+#   8009  payment_shipping_service
+#   8010  guardrails_service
+#   8011  multi_agent_system
+#   8012  seller_portal
+#
+# BROWSER ↔ BACKEND NOTE
+#   The React bundle hardcodes http://localhost:800X for API calls (src/api/index.js).
+#   These calls come from the USER'S BROWSER, not from inside Docker. All backend ports
+#   are mapped to the host so that browser requests to localhost:800X reach the correct
+#   container. No nginx proxy is needed for this setup.
+#
+# AZURE OPENAI
+#   Only 4 services need Azure OpenAI credentials (set in .env):
+#     product_catalogue   — text-embedding-3-small (semantic search)
+#     shopping_assistant  — GPT-5.4-mini (RAG chat)
+#     multi_agent_system  — GPT-5.4-mini (orchestration agents)
+#     tool_calling_agent  — GPT-5.4-mini (function calling)
+#   The remaining 9 services start fine without Azure OpenAI credentials.
+
+version: "3.9"
+
+# ── Shared configuration anchors ──────────────────────────────────────────────
+
+x-postgres-service: &pg-service
+  # All PostgreSQL-backed services share this base config.
+  # The DATABASE_URL env var overrides the default localhost connection string.
+  depends_on:
+    postgres:
+      condition: service_healthy
+  env_file: .env
+  restart: unless-stopped
+
+x-postgres-env: &pg-env
+  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgre_catalogue
+
+# ── Services ──────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgre_catalogue
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/01-extensions.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgre_catalogue"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ── SQLite-backed services (no postgres dependency) ──────────────────────────
+
+  user_management:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: user_management
+        PORT: 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      # Named volume keeps ecommerce.db across restarts; data/ is outside the code dir
+      - user_mgmt_data:/app/data
+    env_file: .env
+    environment:
+      PORT: "8000"
+      # Absolute SQLite path inside the mounted volume
+      USER_DB_URL: "sqlite:////app/data/ecommerce.db"
+    restart: unless-stopped
+
+  seller_portal:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: seller_portal
+        PORT: 8012
+    ports:
+      - "8012:8012"
+    volumes:
+      - seller_portal_data:/app/data
+    env_file: .env
+    environment:
+      PORT: "8012"
+      DATABASE_URL_SELLER: "sqlite:////app/data/seller_portal.db"
+    restart: unless-stopped
+
+  # ── PostgreSQL-backed services ───────────────────────────────────────────────
+
+  product_catalogue:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: product_catalogue
+        PORT: 8001
+    ports:
+      - "8001:8001"
+    environment:
+      <<: *pg-env
+      PORT: "8001"
+    # Note: run `docker compose exec product_catalogue python seed_data.py`
+    #       and `python generate_dataset.py` after first startup to load products.
+
+  shopping_assistant:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: shopping_assistant
+        PORT: 8002
+    ports:
+      - "8002:8002"
+    environment:
+      <<: *pg-env
+      PORT: "8002"
+    # Requires AZURE_OPENAI_* credentials in .env for the RAG chat endpoint
+
+  checkout_service:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: checkout_service
+        PORT: 8003
+    ports:
+      - "8003:8003"
+    environment:
+      <<: *pg-env
+      PORT: "8003"
+
+  order_management:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: order_management
+        PORT: 8004
+    ports:
+      - "8004:8004"
+    environment:
+      <<: *pg-env
+      PORT: "8004"
+
+  inventory_service:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: inventory_service
+        PORT: 8005
+    ports:
+      - "8005:8005"
+    environment:
+      <<: *pg-env
+      PORT: "8005"
+
+  recommendation_engine:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: recommendation_engine
+        PORT: 8006
+    ports:
+      - "8006:8006"
+    environment:
+      <<: *pg-env
+      PORT: "8006"
+
+  tool_calling_agent:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: tool_calling_agent
+        PORT: 8007
+    ports:
+      - "8007:8007"
+    environment:
+      <<: *pg-env
+      PORT: "8007"
+    # Requires AZURE_OPENAI_* credentials in .env
+
+  session_service:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: session_service
+        PORT: 8008
+    ports:
+      - "8008:8008"
+    environment:
+      <<: *pg-env
+      PORT: "8008"
+
+  payment_shipping_service:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: payment_shipping_service
+        PORT: 8009
+    ports:
+      - "8009:8009"
+    environment:
+      <<: *pg-env
+      PORT: "8009"
+
+  guardrails_service:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: guardrails_service
+        PORT: 8010
+    ports:
+      - "8010:8010"
+    environment:
+      <<: *pg-env
+      PORT: "8010"
+
+  multi_agent_system:
+    <<: *pg-service
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE_DIR: multi_agent_system
+        PORT: 8011
+    ports:
+      - "8011:8011"
+    environment:
+      <<: *pg-env
+      PORT: "8011"
+    # Requires AZURE_OPENAI_* credentials in .env
+
+  # ── Frontend ────────────────────────────────────────────────────────────────
+
+  frontend:
+    build:
+      context: ./src/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    restart: unless-stopped
+    # The React app makes direct browser-to-backend calls on localhost:800X.
+    # No depends_on needed — nginx serves the static bundle regardless of
+    # whether backends are up. The browser handles connection errors gracefully.
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+
+volumes:
+  postgres_data:        # PostgreSQL WAL + tables (products, orders, carts, …)
+  user_mgmt_data:       # user_management SQLite file (user accounts, JWT tokens)
+  seller_portal_data:   # seller_portal SQLite file (merchant profiles, listings)

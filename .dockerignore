@@ -1,0 +1,40 @@
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+
+# Node / frontend build artifacts
+src/frontend/node_modules/
+src/frontend/dist/
+
+# Vector / embedded databases (re-seeded inside container)
+src/*/chroma_db/
+src/*/*.db
+src/*/*.sqlite
+src/*/*.sqlite3
+
+# Logs
+logs/
+*.log
+
+# Test artifacts
+.pytest_cache/
+tests/__pycache__/
+
+# IDE and OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets (never bake into images)
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore

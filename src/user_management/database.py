@@ -6,20 +6,18 @@
 #   3. Base             → parent class for all ORM models (models.py inherits from this)
 #   4. get_db()         → a FastAPI dependency injected into every route that needs the DB
 
+import os
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# SQLite stores everything in a local file — no server needed for POC.
-# To switch to PostgreSQL in production, just change this URL to:
-#   "postgresql://user:password@host:5432/dbname"
-# Nothing else in the codebase needs to change.
-SQLALCHEMY_DATABASE_URL = "sqlite:///./ecommerce.db"
+# Default to SQLite for zero-setup local dev; override USER_DB_URL for PostgreSQL or
+# a Docker volume-backed absolute path (sqlite:////data/ecommerce.db).
+SQLALCHEMY_DATABASE_URL = os.getenv("USER_DB_URL", "sqlite:///./ecommerce.db")
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    # SQLite only allows one thread by default.
-    # FastAPI uses multiple threads, so we must allow that here.
-    connect_args={"check_same_thread": False},
+    connect_args={"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {},
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

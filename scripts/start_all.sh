@@ -28,20 +28,21 @@ if [ -f "$ROOT/.env" ]; then
 fi
 
 # ── Service definitions: (directory, port, service_name) ─────────────────────
+# Ports match src/frontend/src/api/index.js which hardcodes localhost:800X URLs.
 declare -a SERVICES=(
-  "user_management:8001:user_management"
-  "product_catalogue:8002:product_catalogue"
+  "user_management:8000:user_management"
+  "product_catalogue:8001:product_catalogue"
+  "shopping_assistant:8002:shopping_assistant"
   "checkout_service:8003:checkout_service"
-  "recommendation_engine:8004:recommendation_engine"
+  "order_management:8004:order_management"
   "inventory_service:8005:inventory_service"
-  "order_management:8006:order_management"
-  "session_service:8007:session_service"
-  "payment_shipping_service:8008:payment_shipping_service"
-  "guardrails_service:8009:guardrails_service"
-  "multi_agent_system:8010:multi_agent_system"
-  "seller_portal:8011:seller_portal"
-  "shopping_assistant:8012:shopping_assistant"
-  "tool_calling_agent:8013:tool_calling_agent"
+  "recommendation_engine:8006:recommendation_engine"
+  "tool_calling_agent:8007:tool_calling_agent"
+  "session_service:8008:session_service"
+  "payment_shipping_service:8009:payment_shipping_service"
+  "guardrails_service:8010:guardrails_service"
+  "multi_agent_system:8011:multi_agent_system"
+  "seller_portal:8012:seller_portal"
 )
 
 echo "Starting E-Commerce AI Platform services..."
