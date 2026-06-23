@@ -136,6 +136,45 @@ class InventoryForecast(Base):
     created_at              = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
 
 
+# ── Order Reroute Events ──────────────────────────────────────────────────────
+
+class RerouteEvent(Base):
+    """
+    Audit record written by RerouteCoordinator after every rerouting run.
+    Tracks outcome, timing, and agent message count for dashboards.
+    """
+    __tablename__ = "mas_reroute_events"
+
+    id            = Column(String, primary_key=True, default=_uuid)
+    run_id        = Column(String, nullable=False, index=True, unique=True)
+    order_id      = Column(String, nullable=False, index=True)
+    outcome       = Column(String, nullable=False)   # rerouted | cancelled | no_action_needed | failed
+    message_count = Column(Integer, default=0)        # number of inter-agent messages
+    created_at    = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+
+
+# ── RCA Report ───────────────────────────────────────────────────────────────
+
+class RCAReport(Base):
+    """
+    Persisted output of one RCA run.
+    One row per analyze() call — identified by analysis_id.
+    """
+    __tablename__ = "mas_rca_reports"
+
+    id              = Column(String, primary_key=True, default=_uuid)
+    analysis_id     = Column(String, nullable=False, index=True, unique=True)
+    target_type     = Column(String, nullable=False)          # order | product | batch
+    target_id       = Column(String, nullable=False, index=True)
+    root_cause_type = Column(String, nullable=False)          # taxonomy constant
+    confidence      = Column(Float, default=0.0)              # 0.0 – 1.0
+    summary         = Column(Text, nullable=True)
+    anomalies_found = Column(Integer, default=0)
+    agent_messages  = Column(JSON, default=list)              # full bus log
+    remediation     = Column(JSON, default=list)              # list of step strings
+    created_at      = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+
+
 # ── Agent Analytics Log ───────────────────────────────────────────────────────
 
 class AgentAnalyticsLog(Base):

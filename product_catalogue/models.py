@@ -73,3 +73,19 @@ class Category(Base):
     name        = Column(String, nullable=False, unique=True)
     parent_name = Column(String, nullable=True)
     description = Column(String, nullable=True)
+
+
+class EnrichmentRecord(Base):
+    """Tracks enrichment state per product for differential hashing and cost accounting."""
+    __tablename__ = "product_enrichment_records"
+
+    id            = Column(String, primary_key=True, default=new_uuid)
+    product_id    = Column(String, ForeignKey("products.id", ondelete="CASCADE"),
+                           nullable=False, unique=True, index=True)
+    content_hash  = Column(String, nullable=False)   # SHA-256 of (name+desc+specs+tags)
+    enriched_at   = Column(DateTime, default=datetime.utcnow)
+    tokens_input  = Column(Integer, default=0)
+    tokens_output = Column(Integer, default=0)
+    quality_score = Column(Float,   default=0.0)     # 0-100 completeness score
+
+    product = relationship("Product", backref="enrichment_record", uselist=False)

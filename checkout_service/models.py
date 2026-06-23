@@ -115,3 +115,19 @@ class Payment(Base):
     created_at     = Column(DateTime, default=datetime.utcnow)
 
     order = relationship("Order", back_populates="payment")
+
+
+# ── Idempotency keys ──────────────────────────────────────────────────────────
+# Prevents duplicate order placement when clients retry a request (network hiccup,
+# user double-taps "Place Order", etc.).  The client sends a UUID as the
+# Idempotency-Key header; if we've seen that key before, we return the original
+# response without re-executing the operation.
+class IdempotencyRecord(Base):
+    __tablename__ = "checkout_idempotency_keys"
+
+    key        = Column(String,   primary_key=True)          # UUID supplied by client
+    endpoint   = Column(String,   nullable=False)             # e.g. "POST /checkout"
+    order_id   = Column(String,   nullable=True)              # result of the original call
+    status_code = Column(Integer, nullable=False, default=201)
+    response_body = Column(Text,  nullable=True)              # JSON-encoded response
+    created_at = Column(DateTime, default=datetime.utcnow)

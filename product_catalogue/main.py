@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from database import engine, Base
-from routes import product_routes, search_routes, review_routes, category_routes
+from routes import product_routes, search_routes, review_routes, category_routes, enrichment_routes
 
 Base.metadata.create_all(bind=engine)
 
@@ -39,6 +39,7 @@ app.include_router(product_routes.router)
 app.include_router(search_routes.router)
 app.include_router(review_routes.router)
 app.include_router(category_routes.router)
+app.include_router(enrichment_routes.router)
 
 
 @app.get("/", include_in_schema=False)

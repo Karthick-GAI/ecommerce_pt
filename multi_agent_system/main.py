@@ -24,11 +24,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 from database import engine, Base, SessionLocal
 from models import (
     MASSession, MASMessage, MASHandoff,
-    SupportTicket, InventoryForecast, AgentAnalyticsLog,
+    SupportTicket, InventoryForecast, AgentAnalyticsLog, RCAReport,
 )
-from routes.chat_routes      import router as chat_router
-from routes.agent_routes     import router as agent_router
-from routes.analytics_routes import router as analytics_router
+from routes.chat_routes       import router as chat_router
+from routes.agent_routes      import router as agent_router
+from routes.analytics_routes  import router as analytics_router
+from routes.rerouting_routes  import router as rerouting_router
+from routes.rca_routes        import router as rca_router
 
 
 @asynccontextmanager
@@ -71,6 +73,8 @@ app.add_middleware(
 app.include_router(chat_router)
 app.include_router(agent_router)
 app.include_router(analytics_router)
+app.include_router(rerouting_router)
+app.include_router(rca_router)
 
 
 @app.get("/", include_in_schema=False)
