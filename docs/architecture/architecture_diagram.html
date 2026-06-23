@@ -1,0 +1,996 @@
+<title>AI-Powered E-Commerce — System Architecture</title>
+<style>
+:root {
+  --ground:      #0C1B2E;
+  --ground-mid:  #0F2240;
+  --ground-card: #132B4A;
+  --ground-hi:   #1A3860;
+  --text:        #D4E6F2;
+  --text-dim:    #7098B8;
+  --text-mute:   #3A587A;
+  --border:      #1A3860;
+
+  --c-ui:   #3EC8CE;
+  --c-nfr:  #F0A830;
+  --c-core: #5A8EEF;
+  --c-ai:   #9878E8;
+  --c-data: #48B87A;
+  --c-ext:  #7A90A8;
+
+  --mono: 'SF Mono','Menlo','Cascadia Mono','Segoe UI Mono','Courier New',monospace;
+  --sans: system-ui,-apple-system,'Segoe UI',sans-serif;
+
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--ground);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+}
+
+/* ── WRAPPER ── */
+.wrap {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 36px 44px 52px;
+}
+
+/* ── HEADER ── */
+.hdr {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-bottom: 24px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+  gap: 24px;
+}
+
+.hdr-left { display: flex; flex-direction: column; gap: 5px; }
+
+.hdr-eyebrow {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--c-nfr);
+}
+
+.hdr-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.hdr-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+.hdr-stats {
+  display: flex;
+  gap: 28px;
+  flex-shrink: 0;
+}
+
+.stat { text-align: right; }
+
+.stat-n {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--text);
+}
+
+.stat-l {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+/* ── DIAGRAM FRAME ── */
+.diagram {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── LAYER ROW ── */
+.layer {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  position: relative;
+}
+
+.layer + .layer { border-top: 1px solid var(--border); }
+
+/* PCB via-pad junction decoration */
+.layer + .layer::before {
+  content: '';
+  position: absolute;
+  left: 86px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ground-mid);
+  border: 1.5px solid;
+  z-index: 2;
+}
+
+.layer--ui   + .layer::before { border-color: var(--c-ui);   }
+.layer--nfr  + .layer::before { border-color: var(--c-nfr);  }
+.layer--core + .layer::before { border-color: var(--c-core); }
+.layer--ai   + .layer::before { border-color: var(--c-ai);   }
+.layer--data + .layer::before { border-color: var(--c-data); }
+.layer--llm  + .layer::before { border-color: var(--c-nfr);  }
+
+/* ── LABEL SIDEBAR ── */
+.lbl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 6px;
+  gap: 10px;
+  background: var(--ground-mid);
+  border-right: 2px solid var(--border);
+  position: relative;
+}
+
+/* Trace accent on right edge of label */
+.layer--ui   .lbl { border-right-color: var(--c-ui);   }
+.layer--nfr  .lbl { border-right-color: var(--c-nfr);  }
+.layer--core .lbl { border-right-color: var(--c-core); }
+.layer--ai   .lbl { border-right-color: var(--c-ai);   }
+.layer--data .lbl { border-right-color: var(--c-data); }
+.layer--llm  .lbl { border-right-color: var(--c-nfr);  }
+.layer--ext  .lbl { border-right-color: var(--c-ext);  }
+
+.lbl-num {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-mute);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  letter-spacing: 0.05em;
+}
+
+.lbl-tag {
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.lbl-pad {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.layer--ui   .lbl-tag, .layer--ui   .lbl-pad { color: var(--c-ui);   background: var(--c-ui);   }
+.layer--nfr  .lbl-tag, .layer--nfr  .lbl-pad { color: var(--c-nfr);  background: var(--c-nfr);  }
+.layer--core .lbl-tag, .layer--core .lbl-pad { color: var(--c-core); background: var(--c-core); }
+.layer--ai   .lbl-tag, .layer--ai   .lbl-pad { color: var(--c-ai);   background: var(--c-ai);   }
+.layer--data .lbl-tag, .layer--data .lbl-pad { color: var(--c-data); background: var(--c-data); }
+.layer--llm  .lbl-tag, .layer--llm  .lbl-pad { color: var(--c-nfr);  background: var(--c-nfr);  }
+.layer--ext  .lbl-tag, .layer--ext  .lbl-pad { color: var(--c-ext);  background: var(--c-ext);  }
+
+/* ── CONTENT AREA ── */
+.lcontent { padding: 16px 20px; background: var(--ground); }
+
+/* ── CARD BASE ── */
+.card {
+  background: var(--ground-card);
+  border-radius: 3px;
+  border-top: 2px solid var(--border);
+  padding: 11px 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.card.ui-c   { border-top-color: var(--c-ui);   }
+.card.core-c { border-top-color: var(--c-core); }
+.card.ai-c   { border-top-color: var(--c-ai);   }
+.card.data-c { border-top-color: var(--c-data); }
+.card.nfr-c  { border-top-color: var(--c-nfr);  }
+.card.ext-c  { border-top-color: var(--c-ext);  }
+
+.card-name {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.card-port {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--text-dim);
+}
+
+.card-desc {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  line-height: 1.55;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.tag {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  padding: 1.5px 5px;
+  border-radius: 2px;
+  background: var(--ground-hi);
+  color: var(--text-mute);
+  white-space: nowrap;
+}
+
+.tag.t-ai   { color: var(--c-ai);   }
+.tag.t-sec  { color: var(--c-data); }
+.tag.t-core { color: var(--c-core); }
+.tag.t-nfr  { color: var(--c-nfr);  }
+.tag.t-ext  { color: var(--c-ext);  }
+
+/* ── UI LAYER ── */
+.ui-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.page {
+  font-family: var(--mono);
+  font-size: 7px;
+  padding: 2px 6px;
+  border-radius: 2px;
+  background: var(--ground-hi);
+  color: var(--text-dim);
+}
+
+/* ── NFR LAYER ── */
+.nfr-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+}
+
+.nfr-pill {
+  background: var(--ground-card);
+  border: 1px solid rgba(240,168,48,0.25);
+  border-radius: 3px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nfr-ico { font-size: 14px; line-height: 1; }
+
+.nfr-name {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--c-nfr);
+}
+
+.nfr-desc {
+  font-size: 8.5px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ── CORE SERVICES ── */
+.core-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+/* ── AI LAYER ── */
+.ai-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.ai-flow {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--c-ai);
+  line-height: 1.5;
+  padding: 4px 6px;
+  background: rgba(152,120,232,0.08);
+  border-radius: 2px;
+  border-left: 2px solid var(--c-ai);
+}
+
+/* AI layer neural animation */
+@keyframes neural-pulse {
+  0%   { background: var(--ground); }
+  50%  { background: rgba(152,120,232,0.04); }
+  100% { background: var(--ground); }
+}
+
+.layer--ai .lcontent {
+  animation: neural-pulse 4s ease-in-out infinite;
+}
+
+/* ── DATA LAYER ── */
+.data-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 260px;
+  gap: 12px;
+}
+
+.db-tables {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 5px;
+}
+
+.tbl {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  padding: 1.5px 5px;
+  background: var(--ground-hi);
+  border-radius: 2px;
+  color: var(--c-data);
+}
+
+/* Synthetic pipeline card */
+.pipeline {
+  background: linear-gradient(135deg, var(--ground-card) 0%, #102A1E 100%);
+  border: 1px dashed rgba(72,184,122,0.4);
+  border-radius: 3px;
+  padding: 13px 15px;
+}
+
+.pipe-title {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--c-data);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pipe-title::before { content: '▶'; font-size: 7px; }
+
+.pipe-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 3px 0;
+}
+
+.pipe-row + .pipe-row { border-top: 1px solid rgba(72,184,122,0.1); }
+
+.pipe-k { font-size: 8.5px; color: var(--text-dim); }
+
+.pipe-v {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pipe-src {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(72,184,122,0.2);
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--c-data);
+}
+
+/* ── LLM LAYER ── */
+.llm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.65fr;
+  gap: 12px;
+}
+
+.llm-model {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--c-nfr);
+}
+
+.llm-provider {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+/* ── EXTERNAL LAYER ── */
+.ext-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── LEGEND ── */
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: var(--ground-mid);
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+.leg-section {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-mute);
+}
+
+.leg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.leg-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.leg-lbl {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--text-dim);
+}
+
+/* ── PRINT ── */
+@media print {
+  body { background: white; }
+  .layer--ai .lcontent { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer--ai .lcontent { animation: none; }
+}
+</style>
+
+<div class="wrap">
+
+  <!-- ── HEADER ── -->
+  <header class="hdr">
+    <div class="hdr-left">
+      <span class="hdr-eyebrow">Capstone Project · System Architecture Diagram</span>
+      <h1 class="hdr-title">AI-Powered E-Commerce Retail Platform</h1>
+      <p class="hdr-sub">Microservices · Azure OpenAI · PostgreSQL + pgvector · FastAPI · React · Synthetic Dataset Pipeline</p>
+    </div>
+    <div class="hdr-stats">
+      <div class="stat">
+        <div class="stat-n">13</div>
+        <div class="stat-l">Microservices</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n">5K+</div>
+        <div class="stat-l">Products</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n">150K</div>
+        <div class="stat-l">Events</div>
+      </div>
+      <div class="stat">
+        <div class="stat-n">1536</div>
+        <div class="stat-l">Embed Dims</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── DIAGRAM ── -->
+  <div class="diagram">
+
+    <!-- 01 · UI LAYER -->
+    <section class="layer layer--ui">
+      <div class="lbl">
+        <span class="lbl-num">01</span>
+        <div class="lbl-pad"></div>
+        <span class="lbl-tag">UI</span>
+      </div>
+      <div class="lcontent">
+        <div class="ui-grid">
+
+          <div class="card ui-c">
+            <div class="card-name">Consumer Storefront · B2C</div>
+            <div class="card-port">React 18 · Vite · React Router · Axios</div>
+            <div class="card-desc">Single-page application for browsing, cart management, checkout, and account. AI chat widget (shopping assistant) embedded on every product page. Real-time cart state via Zustand.</div>
+            <div class="pages">
+              <span class="page">/ Home</span>
+              <span class="page">/products</span>
+              <span class="page">/products/:id</span>
+              <span class="page">/cart</span>
+              <span class="page">/checkout</span>
+              <span class="page">/orders</span>
+              <span class="page">/auth</span>
+            </div>
+            <div class="tags">
+              <span class="tag">React 18</span>
+              <span class="tag">Vite</span>
+              <span class="tag">Axios</span>
+              <span class="tag">ChatWidget</span>
+            </div>
+          </div>
+
+          <div class="card ui-c">
+            <div class="card-name">Seller Portal · B2B</div>
+            <div class="card-port">FastAPI · :8011 · SQLite</div>
+            <div class="card-desc">Merchant portal for product catalogue management with KYC-gated onboarding. Sellers submit products for admin review before going live. Order fulfilment dashboard and payout tracking.</div>
+            <div class="pages">
+              <span class="page">/seller/auth/register</span>
+              <span class="page">/seller/auth/login</span>
+              <span class="page">/seller/catalogue</span>
+              <span class="page">/seller/orders/dashboard</span>
+              <span class="page">/seller/profile</span>
+            </div>
+            <div class="tags">
+              <span class="tag">FastAPI</span>
+              <span class="tag t-nfr">Rate-limited auth</span>
+              <span class="tag">KYC Workflow</span>
+              <span class="tag">Approval Gate</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 02 · NFR LAYER -->
+    <section class="layer layer--nfr">
+      <div class="lbl">
+        <span class="lbl-num">02</span>
+        <div class="lbl-pad"></div>
+        <span class="lbl-tag">NFR</span>
+      </div>
+      <div class="lcontent">
+        <div class="nfr-grid">
+
+          <div class="nfr-pill">
+            <span class="nfr-ico">⚡</span>
+            <div class="nfr-name">Rate Limiting</div>
+            <div class="nfr-desc">slowapi · 5 req/min on /auth/login · 3 reg/min · Stops credential-stuffing and account takeover</div>
+          </div>
+
+          <div class="nfr-pill">
+            <span class="nfr-ico">◉</span>
+            <div class="nfr-name">Circuit Breaker</div>
+            <div class="nfr-desc">CLOSED → OPEN → HALF_OPEN · Configurable threshold · Auto-recovery · Per-service registry · /health exposes all states</div>
+          </div>
+
+          <div class="nfr-pill">
+            <span class="nfr-ico">📊</span>
+            <div class="nfr-name">Prometheus Metrics</div>
+            <div class="nfr-desc">/metrics on every service · http_requests_total · duration histogram · in-flight gauge · service_info labels</div>
+          </div>
+
+          <div class="nfr-pill">
+            <span class="nfr-ico">📋</span>
+            <div class="nfr-name">Structured Logging</div>
+            <div class="nfr-desc">JSON per request · X-Trace-ID propagation · user_id extraction · duration_ms · status_code · Correlates distributed traces</div>
+          </div>
+
+          <div class="nfr-pill">
+            <span class="nfr-ico">🔐</span>
+            <div class="nfr-name">GDPR Compliance</div>
+            <div class="nfr-desc">Art. 17 Right to Erasure — anonymises PII, deletes tokens, issues erasure receipt · Art. 20 Portability — full JSON data export</div>
+          </div>
+
+          <div class="nfr-pill">
+            <span class="nfr-ico">🔑</span>
+            <div class="nfr-name">Idempotency Keys</div>
+            <div class="nfr-desc">Idempotency-Key header · POST /checkout and /pay · DB-persisted response cache · No duplicate orders on retry</div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 · CORE SERVICES -->
+    <section class="layer layer--core">
+      <div class="lbl">
+        <span class="lbl-num">03</span>
+        <div class="lbl-pad"></div>
+        <span class="lbl-tag">Core API</span>
+      </div>
+      <div class="lcontent">
+        <div class="core-grid">
+
+          <div class="card core-c">
+            <div class="card-name">User Management</div>
+            <div class="card-port">:8000 · SQLite</div>
+            <div class="card-desc">Registration, JWT access+refresh tokens, bcrypt passwords. GDPR Art.17 erasure and Art.20 data-export endpoints. Rate-limited login prevents brute-force.</div>
+            <div class="tags">
+              <span class="tag t-sec">JWT / bcrypt</span>
+              <span class="tag t-sec">GDPR</span>
+              <span class="tag t-nfr">5 req/min</span>
+            </div>
+          </div>
+
+          <div class="card core-c">
+            <div class="card-name">Product Catalogue</div>
+            <div class="card-port">:8001 · PostgreSQL + pgvector</div>
+            <div class="card-desc">Natural-language search: parse_nl_query → embed → pgvector cosine. LLM attribute enrichment pipeline. Product reviews, ratings, category trees.</div>
+            <div class="tags">
+              <span class="tag t-ai">pgvector cosine</span>
+              <span class="tag t-ai">LLM enrichment</span>
+              <span class="tag">Reviews</span>
+            </div>
+          </div>
+
+          <div class="card core-c">
+            <div class="card-name">Checkout Service</div>
+            <div class="card-port">:8002 · PostgreSQL</div>
+            <div class="card-desc">Cart management, stock validation, order creation. 18% GST + shipping + coupon calculation. Idempotency keys prevent duplicate orders on client retry.</div>
+            <div class="tags">
+              <span class="tag t-sec">Idempotency</span>
+              <span class="tag">GST 18%</span>
+              <span class="tag">Coupons</span>
+            </div>
+          </div>
+
+          <div class="card core-c">
+            <div class="card-name">Inventory Service</div>
+            <div class="card-port">:8005 · PostgreSQL</div>
+            <div class="card-desc">Real-time stock tracking with full movement audit trail. Server-Sent Events stream for live low-stock alerts. Configurable threshold rules engine. Startup scan on boot.</div>
+            <div class="tags">
+              <span class="tag">SSE Stream</span>
+              <span class="tag">Audit Trail</span>
+              <span class="tag t-nfr">Alert Rules</span>
+            </div>
+          </div>
+
+          <div class="card core-c">
+            <div class="card-name">Order Management</div>
+            <div class="card-port">:8006 · PostgreSQL</div>
+            <div class="card-desc">Full order lifecycle: pending → confirmed → processing → shipped → delivered. Cancellation flows, refund processing, and notification event dispatch.</div>
+            <div class="tags">
+              <span class="tag">Lifecycle FSM</span>
+              <span class="tag">Refunds</span>
+              <span class="tag">Notifications</span>
+            </div>
+          </div>
+
+          <div class="card core-c">
+            <div class="card-name">Session Service</div>
+            <div class="card-port">:8008 · PostgreSQL</div>
+            <div class="card-desc">Browsing event recording, cart context, session memory builder. Derives customer lifecycle stage (cold/warm/active) consumed by the Recommendation Engine.</div>
+            <div class="tags">
+              <span class="tag">Memory Builder</span>
+              <span class="tag">Lifecycle Stage</span>
+              <span class="tag">Context</span>
+            </div>
+          </div>
+
+          <div class="card core-c">
+            <div class="card-name">Payment &amp; Shipping</div>
+            <div class="card-port">:8009 · PostgreSQL</div>
+            <div class="card-desc">Razorpay: payment order creation, HMAC-SHA256 signature verification, refunds, webhook handler. Shiprocket: carrier rate quotes, shipment booking, AWB tracking.</div>
+            <div class="tags">
+              <span class="tag t-ext">Razorpay</span>
+              <span class="tag t-ext">Shiprocket</span>
+              <span class="tag t-sec">Webhooks</span>
+            </div>
+          </div>
+
+          <div class="card core-c">
+            <div class="card-name">Guardrails &amp; Anomaly</div>
+            <div class="card-port">:8010 · PostgreSQL</div>
+            <div class="card-desc">Input validation: SQL injection, XSS, path traversal, command injection detection. Z-score statistical anomaly scanner. Runtime-configurable rule engine with 10 default rules.</div>
+            <div class="tags">
+              <span class="tag t-sec">OWASP Top-10</span>
+              <span class="tag t-sec">Z-score</span>
+              <span class="tag t-nfr">Rule Engine</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 · AI / ML LAYER -->
+    <section class="layer layer--ai">
+      <div class="lbl">
+        <span class="lbl-num">04</span>
+        <div class="lbl-pad"></div>
+        <span class="lbl-tag">AI · ML</span>
+      </div>
+      <div class="lcontent">
+        <div class="ai-grid">
+
+          <div class="card ai-c">
+            <div class="card-name">Recommendation Engine</div>
+            <div class="card-port">:8003 · PostgreSQL</div>
+            <div class="ai-flow">Collab CF → Content-Based → Trending → Hybrid blend</div>
+            <div class="card-desc">Adaptive weight system across cold / warm / active user stages. User-based CF, item-based CF, browsing-based CF. pgvector cosine for content similarity. LLM Judge evaluates A/B quality.</div>
+            <div class="tags">
+              <span class="tag t-ai">Collaborative CF</span>
+              <span class="tag t-ai">pgvector</span>
+              <span class="tag t-ai">Hybrid</span>
+              <span class="tag t-ai">LLM Judge</span>
+            </div>
+          </div>
+
+          <div class="card ai-c">
+            <div class="card-name">RAG Shopping Assistant</div>
+            <div class="card-port">:8007 · PostgreSQL + pgvector</div>
+            <div class="ai-flow">NL query → parse_nl_query → embed → pgvector → GPT augment → response</div>
+            <div class="card-desc">Retrieval-Augmented Generation: GPT extracts structured filters from natural language, text-embedding-3-small encodes the query, pgvector returns top-K products, GPT-5.4-mini synthesises a cited response.</div>
+            <div class="tags">
+              <span class="tag t-ai">RAG</span>
+              <span class="tag t-ai">text-embedding-3-small</span>
+              <span class="tag t-ai">GPT-5.4-mini</span>
+            </div>
+          </div>
+
+          <div class="card ai-c">
+            <div class="card-name">Tool-Calling Agent</div>
+            <div class="card-port">:8008 · PostgreSQL</div>
+            <div class="ai-flow">Query → ReAct loop → tool select → execute → synthesise</div>
+            <div class="card-desc">ReAct-pattern agent with a typed tool registry: inventory checks, order lookups, product search, recommendation fetch. Multi-turn conversation with session memory. Streaming responses.</div>
+            <div class="tags">
+              <span class="tag t-ai">ReAct</span>
+              <span class="tag t-ai">Tool Registry</span>
+              <span class="tag t-ai">Multi-turn</span>
+            </div>
+          </div>
+
+          <div class="card ai-c">
+            <div class="card-name">Multi-Agent System</div>
+            <div class="card-port">:8011 · PostgreSQL</div>
+            <div class="ai-flow">Router → [Recommendation | Fulfillment | Support | Inventory] + RCA + Rerouting</div>
+            <div class="card-desc">Orchestrator routes tasks to four specialist agents. RCA coordinator for root-cause analysis. Supply-chain rerouting sub-system. Context-passing handoff protocol between agents.</div>
+            <div class="tags">
+              <span class="tag t-ai">Orchestrator</span>
+              <span class="tag t-ai">4 Agents</span>
+              <span class="tag t-ai">RCA</span>
+              <span class="tag t-ai">Rerouting</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 · DATA LAYER -->
+    <section class="layer layer--data">
+      <div class="lbl">
+        <span class="lbl-num">05</span>
+        <div class="lbl-pad"></div>
+        <span class="lbl-tag">Data</span>
+      </div>
+      <div class="lcontent">
+        <div class="data-grid">
+
+          <div class="card data-c">
+            <div class="card-name">PostgreSQL · postgre_catalogue</div>
+            <div class="card-port">Shared across 11 services · pgvector extension</div>
+            <div class="card-desc">Primary relational store. pgvector extension enables 1536-dim cosine similarity search directly inside Postgres — no separate vector DB needed. SQLAlchemy ORM with connection pooling.</div>
+            <div class="db-tables">
+              <span class="tbl">products + embedding</span>
+              <span class="tbl">customers</span>
+              <span class="tbl">orders</span>
+              <span class="tbl">browsing_events</span>
+              <span class="tbl">wishlists</span>
+              <span class="tbl">search_logs</span>
+              <span class="tbl">inventory_movements</span>
+              <span class="tbl">sessions</span>
+              <span class="tbl">chat_history</span>
+              <span class="tbl">anomaly_alerts</span>
+            </div>
+          </div>
+
+          <div class="card data-c">
+            <div class="card-name">SQLite · Isolated Stores</div>
+            <div class="card-port">User Management · Seller Portal</div>
+            <div class="card-desc">Self-contained embedded databases for services that don't require shared state. No connection pool overhead. Suitable for the user-identity and merchant-account domains that own their data fully.</div>
+            <div class="db-tables">
+              <span class="tbl">users</span>
+              <span class="tbl">addresses</span>
+              <span class="tbl">payment_methods</span>
+              <span class="tbl">sellers</span>
+              <span class="tbl">seller_products</span>
+              <span class="tbl">seller_orders</span>
+              <span class="tbl">idempotency_keys</span>
+            </div>
+          </div>
+
+          <div class="pipeline">
+            <div class="pipe-title">Synthetic Data Pipeline</div>
+            <div class="pipe-row">
+              <span class="pipe-k">Products + embeddings</span>
+              <span class="pipe-v">5,000+</span>
+            </div>
+            <div class="pipe-row">
+              <span class="pipe-k">Customer records</span>
+              <span class="pipe-v">10,000</span>
+            </div>
+            <div class="pipe-row">
+              <span class="pipe-k">Orders (cart_activity)</span>
+              <span class="pipe-v">50,000</span>
+            </div>
+            <div class="pipe-row">
+              <span class="pipe-k">Browsing events</span>
+              <span class="pipe-v">150,000</span>
+            </div>
+            <div class="pipe-row">
+              <span class="pipe-k">Wishlists</span>
+              <span class="pipe-v">30,000</span>
+            </div>
+            <div class="pipe-row">
+              <span class="pipe-k">Search logs</span>
+              <span class="pipe-v">15,000</span>
+            </div>
+            <div class="pipe-src">generate_dataset.py → PostgreSQL · ~8–10 min runtime</div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 · AZURE OPENAI -->
+    <section class="layer layer--llm">
+      <div class="lbl">
+        <span class="lbl-num">06</span>
+        <div class="lbl-pad"></div>
+        <span class="lbl-tag">LLM</span>
+      </div>
+      <div class="lcontent">
+        <div class="llm-grid">
+
+          <div class="card nfr-c">
+            <div class="llm-model">GPT-5.4-mini</div>
+            <div class="llm-provider">Azure OpenAI · Chat Completions API</div>
+            <div class="card-desc">Inference engine for all conversational and reasoning tasks: RAG response synthesis, ReAct tool-calling loop, multi-agent specialist prompts, LLM product attribute enrichment, and LLM Judge quality evaluation. Prompt caching enabled — cached tokens billed at 50% discount.</div>
+            <div class="tags">
+              <span class="tag t-ai">RAG synthesis</span>
+              <span class="tag t-ai">ReAct</span>
+              <span class="tag t-ai">Multi-agent</span>
+              <span class="tag t-ai">Enrichment</span>
+              <span class="tag t-ai">Judge</span>
+            </div>
+          </div>
+
+          <div class="card nfr-c">
+            <div class="llm-model">text-embedding-3-small</div>
+            <div class="llm-provider">Azure OpenAI · Embeddings API · 1536 dimensions</div>
+            <div class="card-desc">Converts product descriptions and natural-language search queries into dense 1536-dim vectors. Stored in PostgreSQL via the pgvector extension as the <code style="font-family:var(--mono);font-size:8px;color:var(--c-data)">products.embedding</code> column. Powers semantic search in Product Catalogue, RAG pipeline, and content-based recommendation. Generated once during dataset ingestion via generate_dataset.py.</div>
+            <div class="tags">
+              <span class="tag t-ai">Product Catalogue</span>
+              <span class="tag t-ai">RAG pipeline</span>
+              <span class="tag t-ai">Content-based Rec</span>
+            </div>
+          </div>
+
+          <div class="card nfr-c">
+            <div class="llm-model">LLM Judge</div>
+            <div class="llm-provider">Evaluation Framework · A/B Testing</div>
+            <div class="card-desc">Uses GPT as an evaluator to score recommendation quality, search relevance, and assistant response accuracy. Supports A/B experiments comparing recommendation strategies.</div>
+            <div class="tags">
+              <span class="tag t-ai">A/B Eval</span>
+              <span class="tag t-ai">NDCG</span>
+              <span class="tag t-ai">Precision@K</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 · EXTERNAL -->
+    <section class="layer layer--ext">
+      <div class="lbl">
+        <span class="lbl-num">07</span>
+        <div class="lbl-pad"></div>
+        <span class="lbl-tag">External</span>
+      </div>
+      <div class="lcontent">
+        <div class="ext-grid">
+
+          <div class="card ext-c">
+            <div class="card-name">Razorpay</div>
+            <div class="card-port">Payment Gateway · REST API</div>
+            <div class="card-desc">Payment order creation with amount and currency. HMAC-SHA256 signature verification on capture. Refund initiation via order ID. Webhook events: payment.captured, payment.failed, refund.processed. MOCK_PROVIDERS=true flag for local development without live credentials.</div>
+            <div class="tags">
+              <span class="tag t-ext">Order Create</span>
+              <span class="tag t-ext">Verify Signature</span>
+              <span class="tag t-ext">Refunds</span>
+              <span class="tag t-ext">Webhooks</span>
+              <span class="tag">MOCK mode</span>
+            </div>
+          </div>
+
+          <div class="card ext-c">
+            <div class="card-name">Shiprocket</div>
+            <div class="card-port">Logistics Aggregator · REST API</div>
+            <div class="card-desc">Carrier-agnostic shipping rate quotes across multiple logistics partners. Shipment booking and AWB (Air Waybill) number generation. Real-time status tracking via shipment ID. Integrated in Payment &amp; Shipping Service on :8009. Supports MOCK mode for testing.</div>
+            <div class="tags">
+              <span class="tag t-ext">Rate Quotes</span>
+              <span class="tag t-ext">AWB Booking</span>
+              <span class="tag t-ext">Live Tracking</span>
+              <span class="tag">MOCK mode</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+  </div><!-- .diagram -->
+
+  <!-- ── LEGEND ── -->
+  <footer class="legend">
+    <span class="leg-section">Layers</span>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--c-ui)"></div><span class="leg-lbl">UI / Client</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--c-nfr)"></div><span class="leg-lbl">NFR Cross-cutting</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--c-core)"></div><span class="leg-lbl">Core Microservices</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--c-ai)"></div><span class="leg-lbl">AI / ML</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--c-data)"></div><span class="leg-lbl">Data Layer</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--c-nfr)"></div><span class="leg-lbl">Azure OpenAI</span></div>
+    <div class="leg-item"><div class="leg-dot" style="background:var(--c-ext)"></div><span class="leg-lbl">External APIs</span></div>
+    <span class="leg-section" style="margin-left:12px">Stack</span>
+    <div class="leg-item"><span class="tag">Python 3.11</span></div>
+    <div class="leg-item"><span class="tag t-core">FastAPI</span></div>
+    <div class="leg-item"><span class="tag t-core">SQLAlchemy 2.0</span></div>
+    <div class="leg-item"><span class="tag t-ai">PostgreSQL 15 + pgvector</span></div>
+    <div class="leg-item"><span class="tag t-ai">Azure OpenAI</span></div>
+    <div class="leg-item"><span class="tag">React 18 + Vite</span></div>
+    <div class="leg-item"><span class="tag t-nfr">slowapi</span></div>
+    <div class="leg-item"><span class="tag t-nfr">Prometheus</span></div>
+  </footer>
+
+</div>
