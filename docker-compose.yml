@@ -1,98 +1,70 @@
-# E-Commerce AI Platform — Docker Compose
+# E-Commerce AI Platform — Podman / Docker Compose
 #
-# USAGE
-#   # 1. Copy and fill in credentials
-#   cp .env.example .env
+# ONE-COMMAND STARTUP
+#   cp .env.example .env            # fill AZURE_OPENAI_* credentials
+#   bash scripts/compose_up.sh      # handles port conflict + starts everything
 #
-#   # 2. Start everything (first run builds images; ~5 min)
-#   docker compose up --build
+# Or manually:
+#   podman stop podman-postgres kartai-db 2>/dev/null || true
+#   podman-compose up -d
 #
-#   # 3. Open in browser
-#   #    Frontend:         http://localhost:3000
-#   #    API docs (any):   http://localhost:8000/docs  (change port for other services)
+# ACCESS (all via http://localhost:PORT)
+#   3000  Frontend (React SPA)
+#   8000  user_management       /docs
+#   8001  product_catalogue     /docs
+#   8002  shopping_assistant    /docs
+#   8003  checkout_service      /docs
+#   8004  order_management      /docs
+#   8005  inventory_service     /docs
+#   8006  recommendation_engine /docs
+#   8007  tool_calling_agent    /docs
+#   8008  session_service       /docs
+#   8009  payment_shipping      /docs
+#   8010  guardrails_service    /docs
+#   8011  multi_agent_system    /docs
+#   8012  seller_portal         /docs
+#   5432  PostgreSQL
 #
-#   # 4. Seed product data + generate embeddings (requires Azure OpenAI key in .env)
-#   docker compose exec product_catalogue python seed_data.py
-#   docker compose exec product_catalogue python generate_dataset.py
-#
-#   # Stop and remove containers (data volumes are kept)
-#   docker compose down
-#
-#   # Wipe all persistent data
-#   docker compose down -v
-#
-# PORT MAP
-#   3000  frontend (nginx)
-#   5432  postgres
-#   8000  user_management
-#   8001  product_catalogue
-#   8002  shopping_assistant
-#   8003  checkout_service
-#   8004  order_management
-#   8005  inventory_service
-#   8006  recommendation_engine
-#   8007  tool_calling_agent
-#   8008  session_service
-#   8009  payment_shipping_service
-#   8010  guardrails_service
-#   8011  multi_agent_system
-#   8012  seller_portal
-#
-# BROWSER ↔ BACKEND NOTE
-#   The React bundle hardcodes http://localhost:800X for API calls (src/api/index.js).
-#   These calls come from the USER'S BROWSER, not from inside Docker. All backend ports
-#   are mapped to the host so that browser requests to localhost:800X reach the correct
-#   container. No nginx proxy is needed for this setup.
+# NETWORK NOTE (WSL2 / rootless Podman)
+#   Bridge network inter-container routing requires ip_forward=1.
+#   In WSL2 rootless Podman this is not settable without root.
+#   All services use network_mode: host — every container shares
+#   the host network stack, so services connect to localhost:5432 directly.
+#   Port mappings are ignored with host networking; each service binds
+#   to its port on the host directly.
 #
 # AZURE OPENAI
-#   Only 4 services need Azure OpenAI credentials (set in .env):
-#     product_catalogue   — text-embedding-3-small (semantic search)
-#     shopping_assistant  — GPT-5.4-mini (RAG chat)
-#     multi_agent_system  — GPT-5.4-mini (orchestration agents)
-#     tool_calling_agent  — GPT-5.4-mini (function calling)
-#   The remaining 9 services start fine without Azure OpenAI credentials.
+#   Required only for: product_catalogue, shopping_assistant,
+#   multi_agent_system, tool_calling_agent.
+#   The other 9 services run fine without Azure credentials.
+#
+# VOLUME NOTE
+#   pgdata is an external Podman volume containing 6,525 products with
+#   pre-computed embeddings. To start completely fresh:
+#       podman volume create pgdata
+#       podman-compose up -d
+#       podman-compose exec product_catalogue python seed_data.py
+#       podman-compose exec product_catalogue python generate_dataset.py
 
 version: "3.9"
 
-# ── Shared configuration anchors ──────────────────────────────────────────────
-
-x-postgres-service: &pg-service
-  # All PostgreSQL-backed services share this base config.
-  # The DATABASE_URL env var overrides the default localhost connection string.
-  depends_on:
-    postgres:
-      condition: service_healthy
-  env_file: .env
-  restart: unless-stopped
-
-x-postgres-env: &pg-env
-  DATABASE_URL: postgresql://postgres:postgres@postgres:5432/postgre_catalogue
-
-# ── Services ──────────────────────────────────────────────────────────────────
-
 services:
 
-  # ── Infrastructure ──────────────────────────────────────────────────────────
+  # ── Database ────────────────────────────────────────────────────────────────
 
   postgres:
-    image: pgvector/pgvector:pg16
+    image: docker.io/ankane/pgvector:latest
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgre_catalogue
-    ports:
-      - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
       - ./docker/init.sql:/docker-entrypoint-initdb.d/01-extensions.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d postgre_catalogue"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
+    network_mode: host
     restart: unless-stopped
 
-  # ── SQLite-backed services (no postgres dependency) ──────────────────────────
+  # ── SQLite-backed services ───────────────────────────────────────────────────
 
   user_management:
     build:
@@ -100,18 +72,16 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: user_management
-        PORT: 8000
-    ports:
-      - "8000:8000"
+        PORT: "8000"
     volumes:
-      # Named volume keeps ecommerce.db across restarts; data/ is outside the code dir
       - user_mgmt_data:/app/data
     env_file: .env
     environment:
       PORT: "8000"
-      # Absolute SQLite path inside the mounted volume
       USER_DB_URL: "sqlite:////app/data/ecommerce.db"
+    network_mode: host
     restart: unless-stopped
+    depends_on: [postgres]
 
   seller_portal:
     build:
@@ -119,177 +89,183 @@ services:
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: seller_portal
-        PORT: 8012
-    ports:
-      - "8012:8012"
+        PORT: "8012"
     volumes:
       - seller_portal_data:/app/data
     env_file: .env
     environment:
       PORT: "8012"
       DATABASE_URL_SELLER: "sqlite:////app/data/seller_portal.db"
+    network_mode: host
     restart: unless-stopped
 
   # ── PostgreSQL-backed services ───────────────────────────────────────────────
+  # DATABASE_URL uses localhost:5432 because all containers share the host network.
 
   product_catalogue:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: product_catalogue
-        PORT: 8001
-    ports:
-      - "8001:8001"
+        PORT: "8001"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8001"
-    # Note: run `docker compose exec product_catalogue python seed_data.py`
-    #       and `python generate_dataset.py` after first startup to load products.
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   shopping_assistant:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: shopping_assistant
-        PORT: 8002
-    ports:
-      - "8002:8002"
+        PORT: "8002"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8002"
-    # Requires AZURE_OPENAI_* credentials in .env for the RAG chat endpoint
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   checkout_service:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: checkout_service
-        PORT: 8003
-    ports:
-      - "8003:8003"
+        PORT: "8003"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8003"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   order_management:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: order_management
-        PORT: 8004
-    ports:
-      - "8004:8004"
+        PORT: "8004"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8004"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   inventory_service:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: inventory_service
-        PORT: 8005
-    ports:
-      - "8005:8005"
+        PORT: "8005"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8005"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   recommendation_engine:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: recommendation_engine
-        PORT: 8006
-    ports:
-      - "8006:8006"
+        PORT: "8006"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8006"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   tool_calling_agent:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: tool_calling_agent
-        PORT: 8007
-    ports:
-      - "8007:8007"
+        PORT: "8007"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8007"
-    # Requires AZURE_OPENAI_* credentials in .env
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   session_service:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: session_service
-        PORT: 8008
-    ports:
-      - "8008:8008"
+        PORT: "8008"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8008"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   payment_shipping_service:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: payment_shipping_service
-        PORT: 8009
-    ports:
-      - "8009:8009"
+        PORT: "8009"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8009"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   guardrails_service:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: guardrails_service
-        PORT: 8010
-    ports:
-      - "8010:8010"
+        PORT: "8010"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8010"
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   multi_agent_system:
-    <<: *pg-service
     build:
       context: .
       dockerfile: Dockerfile
       args:
         SERVICE_DIR: multi_agent_system
-        PORT: 8011
-    ports:
-      - "8011:8011"
+        PORT: "8011"
+    env_file: .env
     environment:
-      <<: *pg-env
       PORT: "8011"
-    # Requires AZURE_OPENAI_* credentials in .env
+      DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/postgre_catalogue"
+    network_mode: host
+    depends_on: [postgres]
+    restart: unless-stopped
 
   # ── Frontend ────────────────────────────────────────────────────────────────
 
@@ -297,16 +273,13 @@ services:
     build:
       context: ./src/frontend
       dockerfile: Dockerfile
-    ports:
-      - "3000:80"
+    network_mode: host
     restart: unless-stopped
-    # The React app makes direct browser-to-backend calls on localhost:800X.
-    # No depends_on needed — nginx serves the static bundle regardless of
-    # whether backends are up. The browser handles connection errors gracefully.
 
 # ── Volumes ───────────────────────────────────────────────────────────────────
 
 volumes:
-  postgres_data:        # PostgreSQL WAL + tables (products, orders, carts, …)
-  user_mgmt_data:       # user_management SQLite file (user accounts, JWT tokens)
-  seller_portal_data:   # seller_portal SQLite file (merchant profiles, listings)
+  pgdata:
+    external: true        # existing Podman volume — 6,525 products + embeddings
+  user_mgmt_data:         # user accounts SQLite
+  seller_portal_data:     # seller accounts SQLite
