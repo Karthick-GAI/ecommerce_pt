@@ -54,10 +54,17 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)):
         for msg in history_rows[-20:]   # last 20 messages = 10 exchanges
     ]
 
-    # ── 3-6. RAG pipeline ───────────────────────────────────
-    results, parsed_filters = retrieve_products(db, payload.message, n=8)
+    # ── 3-6. RAG pipeline (with graceful degradation) ──────
+    results, parsed_filters, retrieval_mode = retrieve_products(db, payload.message, n=8)
     context = build_context(results)
-    reply   = generate_reply(conversation_history, context, payload.message)
+
+    if retrieval_mode == "keyword":
+        # Vector indexing failed — skip GPT, format keyword results directly
+        from local_fallback import format_keyword_results
+        reply        = format_keyword_results([p for p, _ in results])
+        used_fallback = True
+    else:
+        reply, used_fallback = generate_reply(conversation_history, context, payload.message)
 
     # ── 7. Persist this turn ────────────────────────────────
     source_refs = [
@@ -86,6 +93,7 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)):
         reply=reply,
         sources=sources,
         parsed_filters=parsed_filters,
+        fallback_mode=used_fallback,
     )
 
 

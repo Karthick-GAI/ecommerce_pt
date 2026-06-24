@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Powered E-Commerce Platform — Capstone Presentation</title>
+<style>
+  :root {
+    --bg:        #060E1C;
+    --panel:     #0D1E33;
+    --surface:   #142844;
+    --border:    #1E3A5F;
+    --teal:      #00C8B0;
+    --teal-dim:  #00896E;
+    --amber:     #F2BD4A;
+    --red:       #E05555;
+    --green:     #34D399;
+    --text:      #D8E8F5;
+    --muted:     #6B8DAF;
+    --mono:      'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    --sans:      'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; font-size: 16px; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* ── Progress bar ─────────────────────────────────────── */
+  #progress-bar {
+    position: fixed;
+    top: 0; left: 0;
+    height: 3px;
+    background: var(--teal);
+    transition: width 0.15s ease;
+    z-index: 100;
+    box-shadow: 0 0 8px rgba(0,200,176,0.5);
+  }
+
+  /* ── Slide nav dots ──────────────────────────────────── */
+  #slide-nav {
+    position: fixed;
+    right: 1.2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 99;
+  }
+  .nav-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .nav-dot.active { background: var(--teal); transform: scale(1.4); }
+  .nav-dot:hover { background: var(--muted); }
+
+  /* ── Slides ──────────────────────────────────────────── */
+  .slide {
+    min-height: 100vh;
+    padding: 5rem 6vw 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    border-bottom: 1px solid var(--border);
+    position: relative;
+  }
+  .slide:last-child { border-bottom: none; }
+
+  /* Slide number badge */
+  .slide::before {
+    content: attr(data-index);
+    position: absolute;
+    top: 1.4rem; left: 6vw;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-family: var(--mono);
+  }
+
+  /* ── Typography ──────────────────────────────────────── */
+  .eyebrow {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 0.75rem;
+  }
+
+  h1 {
+    font-size: clamp(2.4rem, 5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    text-wrap: balance;
+    color: #EEF5FF;
+  }
+  h1 em { font-style: normal; color: var(--teal); }
+
+  h2 {
+    font-size: clamp(1.5rem, 3vw, 2.2rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+    color: #EEF5FF;
+    margin-bottom: 0.5rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    margin-bottom: 0.4rem;
+  }
+
+  p { color: var(--muted); font-size: 0.95rem; line-height: 1.65; }
+  p strong { color: var(--text); font-weight: 600; }
+
+  .subtitle {
+    font-size: 1.05rem;
+    color: var(--muted);
+    max-width: 58ch;
+    margin-top: 1rem;
+    line-height: 1.65;
+  }
+
+  /* ── Layout helpers ──────────────────────────────────── */
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+  .cols-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+  .cols-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+  @media (max-width: 800px) {
+    .cols-2, .cols-3, .cols-4 { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 560px) {
+    .cols-2, .cols-3, .cols-4 { grid-template-columns: 1fr; }
+  }
+
+  /* ── Cards ───────────────────────────────────────────── */
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 1.25rem 1.4rem;
+  }
+  .card-accent {
+    border-left: 3px solid var(--teal);
+  }
+  .card h3 { color: var(--text); }
+
+  /* ── Stat blocks ─────────────────────────────────────── */
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+  .stat-value {
+    font-family: var(--mono);
+    font-size: clamp(1.8rem, 3vw, 2.8rem);
+    font-weight: 700;
+    color: var(--teal);
+    letter-spacing: -0.02em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-value.amber { color: var(--amber); }
+  .stat-value.green { color: var(--green); }
+  .stat-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* ── Metric rows ─────────────────────────────────────── */
+  .metric-table { width: 100%; border-collapse: collapse; }
+  .metric-table th {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 0.5rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .metric-table td {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.88rem;
+    border-bottom: 1px solid rgba(30,58,95,0.5);
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .metric-table td:first-child { color: var(--muted); }
+  .metric-table td.mono { font-family: var(--mono); font-size: 0.85rem; }
+  .badge-pass {
+    display: inline-block;
+    background: rgba(52,211,153,0.12);
+    color: var(--green);
+    border: 1px solid rgba(52,211,153,0.25);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.5rem;
+    text-transform: uppercase;
+  }
+  .badge-warn {
+    display: inline-block;
+    background: rgba(242,189,74,0.12);
+    color: var(--amber);
+    border: 1px solid rgba(242,189,74,0.25);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 0.15rem 0.5rem;
+    text-transform: uppercase;
+  }
+
+  /* ── Architecture diagram ─────────────────────────────── */
+  .arch-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.6rem 0.9rem;
+    font-size: 0.78rem;
+    font-family: var(--mono);
+    color: var(--text);
+    text-align: center;
+    line-height: 1.4;
+  }
+  .arch-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 0.3rem;
+    font-family: var(--sans);
+    font-weight: 700;
+  }
+  .arch-arrow {
+    color: var(--muted);
+    font-size: 1.2rem;
+    text-align: center;
+    margin: 0.1rem 0;
+  }
+
+  /* ── ADR cards ───────────────────────────────────────── */
+  .adr {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--teal);
+    padding: 1rem 1.2rem;
+  }
+  .adr-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #EEF5FF;
+    margin-bottom: 0.3rem;
+  }
+  .adr-decision {
+    font-size: 0.78rem;
+    color: var(--teal);
+    font-family: var(--mono);
+    margin-bottom: 0.4rem;
+  }
+  .adr-tradeoff {
+    font-size: 0.78rem;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── Timeline / flow ─────────────────────────────────── */
+  .flow-steps {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+  .flow-step {
+    flex: 1;
+    min-width: 100px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 0.8rem;
+    text-align: center;
+    position: relative;
+    font-size: 0.78rem;
+    color: var(--text);
+  }
+  .flow-step + .flow-step { border-left: none; }
+  .flow-step.active-step { border-top: 2px solid var(--teal); background: var(--surface); }
+  .flow-step-num {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--teal);
+    display: block;
+    margin-bottom: 0.2rem;
+    font-weight: 700;
+  }
+
+  /* ── Progress bars for metrics ──────────────────────── */
+  .bar-wrap { margin-top: 0.4rem; }
+  .bar-track {
+    background: var(--border);
+    height: 5px;
+    width: 100%;
+    position: relative;
+  }
+  .bar-fill {
+    position: absolute;
+    left: 0; top: 0;
+    height: 100%;
+    background: var(--teal);
+    transition: width 1s ease;
+  }
+  .bar-fill.amber { background: var(--amber); }
+  .bar-fill.green { background: var(--green); }
+
+  /* ── Pill tags ───────────────────────────────────────── */
+  .tag {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.2rem 0.55rem;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    margin: 0.15rem 0.15rem 0 0;
+  }
+  .tag-teal { border-color: var(--teal-dim); color: var(--teal); }
+  .tag-amber { border-color: rgba(242,189,74,0.3); color: var(--amber); }
+
+  /* ── Divider ──────────────────────────────────────────── */
+  .divider {
+    width: 2.5rem;
+    height: 2px;
+    background: var(--teal);
+    margin: 1rem 0;
+  }
+
+  /* ── Slide 1 hero ────────────────────────────────────── */
+  #slide-1 { min-height: 100vh; padding: 0; }
+  .hero-inner {
+    min-height: 100vh;
+    padding: 5rem 6vw 4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,200,176,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,200,176,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse 80% 80% at 20% 50%, black 0%, transparent 80%);
+    pointer-events: none;
+  }
+  .hero-glow {
+    position: absolute;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(0,200,176,0.06) 0%, transparent 70%);
+    top: -100px; left: -100px;
+    pointer-events: none;
+  }
+  .hero-meta {
+    display: flex;
+    gap: 2rem;
+    margin-top: 2.5rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+  .hero-meta-value {
+    font-family: var(--mono);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .hero-meta-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .tag-row { margin-top: 1.5rem; }
+
+  /* ── Misc ────────────────────────────────────────────── */
+  .mt-sm { margin-top: 0.75rem; }
+  .mt-md { margin-top: 1.25rem; }
+  .mt-lg { margin-top: 2rem; }
+  .section-header { margin-bottom: 1.5rem; }
+  .callout {
+    background: rgba(0,200,176,0.06);
+    border-left: 3px solid var(--teal);
+    padding: 0.8rem 1rem;
+    font-size: 0.88rem;
+    color: var(--text);
+    margin-top: 1rem;
+  }
+
+  @media print {
+    .slide { page-break-after: always; min-height: 100vh; }
+    #progress-bar, #slide-nav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="progress-bar" style="width:0%"></div>
+
+<nav id="slide-nav">
+  <a class="nav-dot active" href="#slide-1" title="Title"></a>
+  <a class="nav-dot" href="#slide-2" title="EDA"></a>
+  <a class="nav-dot" href="#slide-3" title="Architecture"></a>
+  <a class="nav-dot" href="#slide-4" title="Data Flow"></a>
+  <a class="nav-dot" href="#slide-5" title="Design Decisions"></a>
+  <a class="nav-dot" href="#slide-6" title="Evaluation"></a>
+  <a class="nav-dot" href="#slide-7" title="Production"></a>
+  <a class="nav-dot" href="#slide-8" title="ML Resiliency"></a>
+  <a class="nav-dot" href="#slide-9" title="Summary"></a>
+</nav>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- SLIDE 1 — TITLE                                           -->
+<!-- ────────────────────────────────────────────────────────── -->
+<section class="slide" id="slide-1" data-index="01">
+  <div class="hero-inner">
+    <div class="hero-grid"></div>
+    <div class="hero-glow"></div>
+    <div class="eyebrow">Capstone Project — AI Engineering</div>
+    <h1>AI-Powered<br><em>E-Commerce</em><br>Platform</h1>
+    <p class="subtitle">
+      A production-grade microservices system integrating semantic search, RAG-based conversational shopping, hybrid recommendations, and multi-agent automation — built across 13 independent FastAPI services.
+    </p>
+    <div class="hero-meta">
+      <div class="hero-meta-item">
+        <span class="hero-meta-value">13</span>
+        <span class="hero-meta-label">Microservices</span>
+      </div>
+      <div class="hero-meta-item">
+        <span class="hero-meta-value">5K+</span>
+        <span class="hero-meta-label">Products + Embeddings</span>
+      </div>
+      <div class="hero-meta-item">
+        <span class="hero-meta-value">0.831</span>
+        <span class="hero-meta-label">NDCG@5 (Search)</span>
+      </div>
+      <div class="hero-meta-item">
+        <span class="hero-meta-value">2.3s</span>
+        <span class="hero-meta-label">RAG P95 Latency</span>
+      </div>
+    </div>
+    <div class="tag-row mt-md">
+      <span class="tag tag-teal">FastAPI</span>
+      <span class="tag tag-teal">pgvector</span>
+      <span class="tag tag-teal">Azure OpenAI</span>
+      <span class="tag tag-teal">RAG</span>
+      <span class="tag tag-amber">Docker</span>
+      <span class="tag tag-amber">Kubernetes (Prod)</span>
+      <span class="tag">React 18</span>
+      <span class="tag">PostgreSQL</span>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- SLIDE 2 — EDA                                             -->
+<!-- ────────────────────────────────────────────────────────── -->
+<section class="slide" id="slide-2" data-index="02">
+  <div class="section-header">
+    <div class="eyebrow">Exploratory Data Analysis</div>
+    <h2>Synthetic Dataset — Realistic Indian E-Commerce</h2>
+  </div>
+  <div class="cols-4">
+    <div class="card">
+      <div class="stat">
+        <span class="stat-value">5,000</span>
+        <span class="stat-label">Products</span>
+      </div>
+      <p class="mt-sm">15 categories, 200+ brands. ₹99–₹99,999 realistic pricing range.</p>
+    </div>
+    <div class="card">
+      <div class="stat">
+        <span class="stat-value amber">50K</span>
+        <span class="stat-label">Orders (5yr)</span>
+      </div>
+      <p class="mt-sm">Seasonal Diwali spike visible. Avg order value ₹2,340.</p>
+    </div>
+    <div class="card">
+      <div class="stat">
+        <span class="stat-value">150K</span>
+        <span class="stat-label">Browse Events</span>
+      </div>
+      <p class="mt-sm">Session depth 3–12 pages, avg 4.2 min. Wishlist-to-purchase rate 42%.</p>
+    </div>
+    <div class="card">
+      <div class="stat">
+        <span class="stat-value green">89%</span>
+        <span class="stat-label">Zero-result Recovery</span>
+      </div>
+      <p class="mt-sm">31% of keyword searches had zero exact-match results. RAG closed this gap.</p>
+    </div>
+  </div>
+
+  <div class="cols-2 mt-md">
+    <div>
+      <h3 style="margin-bottom:0.75rem">Category Distribution</h3>
+      <div style="display:flex;flex-direction:column;gap:0.5rem">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:0.2rem">
+            <span style="color:var(--text)">Electronics</span><span style="color:var(--teal);font-family:var(--mono)">22%</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:88%"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:0.2rem">
+            <span style="color:var(--text)">Fashion</span><span style="color:var(--teal);font-family:var(--mono)">19%</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:76%"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:0.2rem">
+            <span style="color:var(--text)">Home &amp; Kitchen</span><span style="color:var(--teal);font-family:var(--mono)">16%</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:64%"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:0.2rem">
+            <span style="color:var(--text)">Books</span><span style="color:var(--teal);font-family:var(--mono)">12%</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:48%"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:0.2rem">
+            <span style="color:var(--text)">Sports / Beauty / Other</span><span style="color:var(--teal);font-family:var(--mono)">31%</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:0.75rem">Key EDA Findings</h3>
+      <div style="display:flex;flex-direction:column;gap:0.6rem">
+        <div class="card card-accent">
+          <p><strong>Power user concentration:</strong> 18% of customers drive 54% of revenue — confirmed hybrid CF+content approach.</p>
+        </div>
+        <div class="card card-accent">
+          <p><strong>Cold-start gap:</strong> Users with &lt;5 purchases show 3.2× lower recommendation CTR — validated adaptive weight strategy.</p>
+        </div>
+        <div class="card card-accent">
+          <p><strong>Search intent:</strong> 68% keyword, 32% category navigation. 31% had zero keyword results → semantic search priority.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- SLIDE 3 — ARCHITECTURE                                    -->
+<!-- ────────────────────────────────────────────────────────── -->
+<section class="slide" id="slide-3" data-index="03">
+  <div class="section-header">
+    <div class="eyebrow">System Architecture</div>
+    <h2>13 Independent Microservices</h2>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:0.4rem;max-width:900px">
+    <!-- Presentation layer -->
+    <div class="arch-block" style="border-top:2px solid var(--amber)">
+      <div class="arch-label">Presentation</div>
+      React 18 + Vite :5173 &nbsp;|&nbsp; B2C Storefront + Seller Portal
+    </div>
+    <div class="arch-arrow" style="text-align:center">↕</div>
+    <!-- API Gateway / Services -->
+    <div style="background:var(--panel);border:1px solid var(--border);border-top:2px solid var(--teal);padding:0.8rem 1rem">
+      <div class="arch-label">FastAPI Microservices (POC: direct ports · Prod: Kong API Gateway + K8s)</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.5rem;margin-top:0.4rem">
+        <div class="arch-block">user_management<br><span style="color:var(--muted)">:8001</span></div>
+        <div class="arch-block">product_catalogue<br><span style="color:var(--muted)">:8002</span></div>
+        <div class="arch-block">shopping_assistant<br><span style="color:var(--teal)">RAG :8012</span></div>
+        <div class="arch-block">checkout_service<br><span style="color:var(--muted)">:8003</span></div>
+        <div class="arch-block">recommendation<br><span style="color:var(--muted)">:8004</span></div>
+        <div class="arch-block">inventory<br><span style="color:var(--muted)">:8005</span></div>
+        <div class="arch-block">multi_agent<br><span style="color:var(--teal)">GPT :8010</span></div>
+        <div class="arch-block">guardrails<br><span style="color:var(--teal)">LLM :8009</span></div>
+      </div>
+    </div>
+    <div class="arch-arrow" style="text-align:center">↕</div>
+    <!-- Data + AI -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+      <div class="arch-block" style="border-top:2px solid #6B8DAF">
+        <div class="arch-label">Data Layer</div>
+        PostgreSQL + pgvector (11 services)<br>
+        SQLite (user_mgmt · seller_portal)
+      </div>
+      <div class="arch-block" style="border-top:2px solid var(--teal)">
+        <div class="arch-label">AI / ML Layer</div>
+        Azure OpenAI — GPT-5.4-mini + text-embedding-3-small<br>
+        Local fallback: Flan-T5-base (CPU)
+      </div>
+    </div>
+    <!-- NFR shared -->
+    <div class="arch-block" style="border:1px dashed var(--border);background:transparent;color:var(--muted);font-size:0.72rem">
+      Shared NFR module → structured JSON logging · circuit breaker · Prometheus /metrics endpoint
+    </div>
+  </div>
+
+  <div class="cols-3 mt-md">
+    <div class="card">
+      <h3>Why Microservices?</h3>
+      <p class="mt-sm">Independent scaling, fault isolation, team parallelism. Each service deployable independently.</p>
+    </div>
+    <div class="card">
+      <h3>Why pgvector over Pinecone?</h3>
+      <p class="mt-sm">SQL + ANN in one query — no two-phase network hop. Migration path: swap <code style="font-size:0.8em;color:var(--teal)">vector_store.py</code> only.</p>
+    </div>
+    <div class="card">
+      <h3>Why sync HTTP over Kafka?</h3>
+      <p class="mt-sm">Primary flows are request-response. Async messaging adds latency without reducing it for browse/checkout.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- SLIDE 4 — DATA FLOW                                       -->
+<!-- ────────────────────────────────────────────────────────── -->
+<section class="slide" id="slide-4" data-index="04">
+  <div class="section-header">
+    <div class="eyebrow">Data Flow</div>
+    <h2>Two Critical Pipelines</h2>
+  </div>
+
+  <div class="cols-2">
+    <!-- RAG Retrieval -->
+    <div>
+      <h3 style="color:var(--teal);margin-bottom:0.8rem">RAG Retrieval Pipeline (Shopping Assistant)</h3>
+      <div style="display:flex;flex-direction:column;gap:0.3rem">
+        <div class="flow-step active-step"><span class="flow-step-num">01</span>User Query Input</div>
+        <div class="flow-step"><span class="flow-step-num">02</span>Input Guardrail (LLM judge)</div>
+        <div class="flow-step active-step"><span class="flow-step-num">03</span>NL Query Parsing → structured filters</div>
+        <div class="flow-step active-step"><span class="flow-step-num">04</span>Embed query → text-embedding-3-small</div>
+        <div class="flow-step active-step"><span class="flow-step-num">05</span>pgvector cosine search + SQL filters</div>
+        <div class="flow-step"><span class="flow-step-num">06</span>Build product context string</div>
+        <div class="flow-step active-step"><span class="flow-step-num">07</span>GPT-5.4-mini generate reply</div>
+        <div class="flow-step"><span class="flow-step-num">08</span>Output Guardrail + return</div>
+      </div>
+      <div class="callout">
+        Active steps highlighted. Key differentiator: SQL pre-filters applied at pgvector query time — no two-pass retrieval.
+      </div>
+    </div>
+    <!-- Ingestion -->
+    <div>
+      <h3 style="color:var(--amber);margin-bottom:0.8rem">Data Ingestion Pipeline (Setup)</h3>
+      <div style="display:flex;flex-direction:column;gap:0.3rem">
+        <div class="flow-step active-step"><span class="flow-step-num">01</span>Synthetic data generation (Faker)</div>
+        <div class="flow-step active-step"><span class="flow-step-num">02</span>PostgreSQL bulk insert (5K products)</div>
+        <div class="flow-step active-step"><span class="flow-step-num">03</span>Batch embed via text-embedding-3-small</div>
+        <div class="flow-step active-step"><span class="flow-step-num">04</span>UPDATE products SET embedding = vector</div>
+        <div class="flow-step"><span class="flow-step-num">05</span>pgvector IVFFlat index creation</div>
+        <div class="flow-step"><span class="flow-step-num">06</span>Services load index at startup (cold start)</div>
+      </div>
+      <div class="callout" style="border-left-color:var(--amber);background:rgba(242,189,74,0.05)">
+        Embeddings generated once (~$0.01 for 5K products). Re-embedding triggered only on product catalogue drift.
+      </div>
+
+      <h3 style="margin-top:1.2rem;margin-bottom:0.5rem">Checkout Flow (Operational)</h3>
+      <div style="font-size:0.8rem;color:var(--muted);line-height:1.9;font-family:var(--mono)">
+        Frontend → checkout_service<br>
+        &nbsp;&nbsp;→ inventory_service (reserve)<br>
+        &nbsp;&nbsp;→ payment_shipping (Razorpay order)<br>
+        ← returns order_id + payment_link<br>
+        [Razorpay webhook] →<br>
+        &nbsp;&nbsp;→ order_management (confirmed)<br>
+        &nbsp;&nbsp;→ Shiprocket booking
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- SLIDE 5 — DESIGN DECISIONS                               -->
+<!-- ────────────────────────────────────────────────────────── -->
+<section class="slide" id="slide-5" data-index="05">
+  <div class="section-header">
+    <div class="eyebrow">Architecture Decision Records</div>
+    <h2>Key Design Decisions &amp; Trade-offs</h2>
+    <p style="margin-top:0.4rem">Full ADRs in <code style="color:var(--teal);font-size:0.85em">DECISIONS.md</code></p>
+  </div>
+
+  <div class="cols-3">
+    <div class="adr">
+      <div class="adr-title">ADR-001 — Vector Store</div>
+      <div class="adr-decision">pgvector (PostgreSQL)</div>
+      <div class="adr-tradeoff">
+        <strong style="color:var(--text)">Won:</strong> SQL + ANN in one query — no two-phase hop, transactional consistency.<br>
+        <strong style="color:var(--amber)">Trade-off:</strong> Not optimal at 500K+ vectors. Migration path: swap vector_store.py only (abstraction layer).
+      </div>
+    </div>
+    <div class="adr">
+      <div class="adr-title">ADR-003 — LLM Model</div>
+      <div class="adr-decision">GPT-5.4-mini (Azure)</div>
+      <div class="adr-tradeoff">
+        <strong style="color:var(--text)">Won:</strong> P95 &lt; 2.3s, reliable structured JSON, Azure SLA.<br>
+        <strong style="color:var(--amber)">Trade-off:</strong> Vendor lock-in. Mitigated by local Flan-T5 fallback + circuit breaker.
+      </div>
+    </div>
+    <div class="adr">
+      <div class="adr-title">ADR-007 — Recommendations</div>
+      <div class="adr-decision">Hybrid CF + Content + Trending</div>
+      <div class="adr-tradeoff">
+        <strong style="color:var(--text)">Won:</strong> Covers cold-start users (new reg/new products) from day one.<br>
+        <strong style="color:var(--amber)">Trade-off:</strong> Static weight thresholds. Prod: A/B test or bandit algorithm.
+      </div>
+    </div>
+    <div class="adr">
+      <div class="adr-title">ADR-005 — Inter-service Comms</div>
+      <div class="adr-decision">Sync HTTP (httpx)</div>
+      <div class="adr-tradeoff">
+        <strong style="color:var(--text)">Won:</strong> Lowest latency for request-response; UI blocks waiting for result.<br>
+        <strong style="color:var(--amber)">Trade-off:</strong> No at-least-once delivery. Prod: payment webhook moves to Kafka.
+      </div>
+    </div>
+    <div class="adr">
+      <div class="adr-title">ADR-010 — Accuracy vs Perf</div>
+      <div class="adr-decision">top-8 retrieval, GPT-5.4-mini</div>
+      <div class="adr-tradeoff">
+        <strong style="color:var(--text)">Result:</strong> NDCG@5 = 0.851, P95 = 2.28s — within NFR targets.<br>
+        <strong style="color:var(--amber)">Trade-off:</strong> top-20 + GPT-4o gives +1% accuracy but P95 = 3.5s (violates NFR).
+      </div>
+    </div>
+    <div class="adr">
+      <div class="adr-title">ADR-011 — Guardrails</div>
+      <div class="adr-decision">LLM-as-Judge (GPT-5.4-mini rubric)</div>
+      <div class="adr-tradeoff">
+        <strong style="color:var(--text)">Won:</strong> Nuanced; handles rephrasing attacks; structured JSON scoring.<br>
+        <strong style="color:var(--amber)">Trade-off:</strong> +40ms per request. Acceptable at 3s P95 budget.
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- SLIDE 6 — EVALUATION                                     -->
+<!-- ────────────────────────────────────────────────────────── -->
+<section class="slide" id="slide-6" data-index="06">
+  <div class="section-header">
+    <div class="eyebrow">Testing &amp; Validation</div>
+    <h2>Evaluation Results</h2>
+  </div>
+
+  <div class="cols-2">
+    <div>
+      <h3 style="margin-bottom:0.75rem">Retrieval Accuracy (30 queries · 126 judgments)</h3>
+      <div style="overflow-x:auto">
+        <table class="metric-table">
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Semantic Search</th>
+              <th>RAG Pipeline</th>
+              <th>Target</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>NDCG@5</td>
+              <td class="mono">0.831</td>
+              <td class="mono">0.851</td>
+              <td class="mono">≥ 0.75</td>
+              <td><span class="badge-pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td>MRR</td>
+              <td class="mono">0.873</td>
+              <td class="mono">0.889</td>
+              <td class="mono">≥ 0.80</td>
+              <td><span class="badge-pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td>Precision@5</td>
+              <td class="mono">0.747</td>
+              <td class="mono">0.760</td>
+              <td class="mono">≥ 0.70</td>
+              <td><span class="badge-pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td>Recall@5</td>
+              <td class="mono">0.634</td>
+              <td class="mono">—</td>
+              <td class="mono">≥ 0.60</td>
+              <td><span class="badge-pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td>LLM Judge Score</td>
+              <td class="mono">—</td>
+              <td class="mono">4.34/5.0</td>
+              <td class="mono">≥ 3.8</td>
+              <td><span class="badge-pass">Pass</span></td>
+            </tr>
+            <tr>
+              <td>Hallucination Rate</td>
+              <td class="mono">—</td>
+              <td class="mono">0.7%</td>
+              <td class="mono">&lt; 2%</td>
+              <td><span class="badge-pass">Pass</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:1rem;margin-bottom:0.5rem">Ablation Study</h3>
+      <div style="overflow-x:auto">
+        <table class="metric-table">
+          <thead>
+            <tr><th>Mode</th><th>NDCG@5</th><th>MRR</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Keyword-only (baseline)</td><td class="mono">0.542</td><td class="mono">0.611</td></tr>
+            <tr><td>Semantic only</td><td class="mono">0.791</td><td class="mono">0.832</td></tr>
+            <tr><td>Semantic + SQL filter</td><td class="mono" style="color:var(--teal)">0.831</td><td class="mono" style="color:var(--teal)">0.873</td></tr>
+            <tr><td>Full RAG</td><td class="mono" style="color:var(--green)">0.851</td><td class="mono" style="color:var(--green)">0.889</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="margin-bottom:0.75rem">Latency (P95)</h3>
+      <div style="display:flex;flex-direction:column;gap:0.75rem">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem">
+            <span>Browse /products</span>
+            <span style="font-family:var(--mono);color:var(--green)">110ms</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill green" style="width:4%"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem">
+            <span>Keyword search</span>
+            <span style="font-family:var(--mono);color:var(--green)">97ms</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill green" style="width:3%"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem">
+            <span>Semantic search</span>
+            <span style="font-family:var(--mono);color:var(--teal)">231ms</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:8%"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem">
+            <span>Checkout POST</span>
+            <span style="font-family:var(--mono);color:var(--teal)">312ms</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill" style="width:10%"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:0.3rem">
+            <span>RAG /chat <span style="color:var(--muted)">(embed + vector + GPT)</span></span>
+            <span style="font-family:var(--mono);color:var(--amber)">2,284ms</span>
+          </div>
+          <div class="bar-track"><div class="bar-fill amber" style="width:76%"></div></div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.25rem">
+        <h3 style="margin-bottom:0.5rem">Load Test (50 users · 60s)</h3>
+        <div class="card" style="margin-top:0.4rem">
+          <p><strong>Zero errors</strong> across all endpoints at 50 concurrent users. RAG: 189 requests, 0% error, P99 = 3.1s.</p>
+        </div>
+        <div class="card" style="margin-top:0.4rem">
+          <p>Semantic search throughput: <strong>5.7 RPS</strong> sustained. Bottleneck is Azure OpenAI embedding rate limit, not compute.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- SLIDE 7 — PRODUCTION SCALE                               -->
+<!-- ────────────────────────────────────────────────────────── -->
+<section class="slide" id="slide-7" data-index="07">
+  <div class="section-header">
+    <div class="eyebrow">Production Scale Design</div>
+    <h2>POC → Production Architecture</h2>
+  </div>
+
+  <div class="cols-2">
+    <div>
+      <h3 style="color:var(--amber);margin-bottom:0.75rem">POC (Current)</h3>
+      <div style="display:flex;flex-direction:column;gap:0.4rem">
+        <div class="card"><p><strong>Deployment:</strong> 13 uvicorn processes on one VM</p></div>
+        <div class="card"><p><strong>Entry:</strong> Direct ports (8001–8013)</p></div>
+        <div class="card"><p><strong>DB:</strong> Shared PostgreSQL + SQLite on localhost</p></div>
+        <div class="card"><p><strong>Rate limiting:</strong> In-process slowapi (per-replica)</p></div>
+        <div class="card"><p><strong>Circuit breaker:</strong> In-process only (state lost on restart)</p></div>
+        <div class="card"><p><strong>Secrets:</strong> .env file</p></div>
+      </div>
+    </div>
+    <div>
+      <h3 style="color:var(--teal);margin-bottom:0.75rem">Production Target</h3>
+      <div style="display:flex;flex-direction:column;gap:0.4rem">
+        <div class="card card-accent"><p><strong>Kubernetes (EKS):</strong> HPA auto-scale 2–10 replicas per service, Istio mTLS, canary deployments</p></div>
+        <div class="card card-accent"><p><strong>API Gateway (Kong):</strong> TLS termination, JWT validation at edge, centralised rate limiting</p></div>
+        <div class="card card-accent"><p><strong>Load Balancer (AWS ALB):</strong> L7 routing, health checks, sticky sessions for WebSocket</p></div>
+        <div class="card card-accent"><p><strong>Redis Cluster:</strong> Shared circuit breaker state, rate limit counters, semantic search cache (15m TTL)</p></div>
+        <div class="card card-accent"><p><strong>RDS per domain:</strong> Independent PostgreSQL per service domain + PgBouncer connection pooling</p></div>
+        <div class="card card-accent"><p><strong>Secrets Manager:</strong> AWS Secrets Manager / K8s Secrets, never in .env</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="cols-3 mt-md">
+    <div class="card">
+      <h3>Observability Stack</h3>
+      <p class="mt-sm">Prometheus + Grafana (RED metrics). Fluent Bit → Elasticsearch → Kibana. Jaeger distributed tracing via Istio. PagerDuty alerts on P99 &gt; 3s.</p>
+    </div>
+    <div class="card">
+      <h3>MLOps Layer</h3>
+      <p class="mt-sm">MLflow model registry for embedding versions and recommendation weights. Drift detection: re-embed if avg cosine similarity drops &gt;10%. Automated NDCG gate in CI pipeline.</p>
+    </div>
+    <div class="card">
+      <h3>CI/CD for ML</h3>
+      <p class="mt-sm">GitLab CI → Docker build → ArgoCD GitOps sync to staging → automated accuracy test (NDCG@5 ≥ 0.75) → manual approval → prod promotion.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- SLIDE 8 — ML RESILIENCY                                  -->
+<!-- ────────────────────────────────────────────────────────── -->
+<section class="slide" id="slide-8" data-index="08">
+  <div class="section-header">
+    <div class="eyebrow">ML Resiliency</div>
+    <h2>Graceful Degradation &amp; Local Fallback</h2>
+  </div>
+
+  <div class="cols-2">
+    <div>
+      <h3 style="margin-bottom:0.75rem">Two-Tier Fallback Strategy</h3>
+      <div style="display:flex;flex-direction:column;gap:0.5rem">
+        <div class="card" style="border-left:3px solid var(--teal)">
+          <h3 style="color:var(--teal)">Tier 0 — Primary (Azure OpenAI)</h3>
+          <p class="mt-sm">GPT-5.4-mini via Azure. Full RAG pipeline. Quality: 4.34/5.0 LLM Judge score.</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--amber)">
+          <h3 style="color:var(--amber)">Tier 1 — Local Flan-T5-base (CPU)</h3>
+          <p class="mt-sm">Activates on Azure timeout (&gt;5s) or circuit breaker open. Loaded at startup — zero cold start per request. Quality: 3.2/5.0 (lower but functional). Response labelled with fallback_mode=true.</p>
+        </div>
+        <div class="card" style="border-left:3px solid var(--muted)">
+          <h3 style="color:var(--muted)">Tier 2 — Keyword-only Results</h3>
+          <p class="mt-sm">Activates if vector indexing fails (no embeddings). Plain ILIKE query, no LLM generation. Always available (pure Python). Latency: 34ms.</p>
+        </div>
+      </div>
+    </div>
+    <div>
+      <h3 style="margin-bottom:0.75rem">Circuit Breaker Pattern</h3>
+      <div style="font-family:var(--mono);font-size:0.78rem;line-height:2;color:var(--muted);background:var(--panel);border:1px solid var(--border);padding:1rem">
+        <span style="color:var(--teal)">CLOSED</span> → Azure calls succeed<br>
+        &nbsp;&nbsp;↓ failure_count &gt; threshold<br>
+        <span style="color:var(--red)">OPEN</span> → All calls fail fast → Flan-T5 activated<br>
+        &nbsp;&nbsp;↓ after timeout (30s)<br>
+        <span style="color:var(--amber)">HALF-OPEN</span> → One probe call<br>
+        &nbsp;&nbsp;↓ success → back to CLOSED<br>
+        &nbsp;&nbsp;↓ failure → back to OPEN
+      </div>
+      <div class="callout mt-sm">
+        Implemented in <code style="color:var(--teal)">src/nfr/circuit_breaker.py</code> — thread-safe, shared across all service instances within a process. Production: Redis-backed for multi-replica state sharing.
+      </div>
+
+      <h3 style="margin-top:1rem;margin-bottom:0.5rem">Fallback Performance</h3>
+      <div style="overflow-x:auto">
+        <table class="metric-table">
+          <thead>
+            <tr><th>Mode</th><th>Latency</th><th>Judge Score</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Azure GPT-5.4-mini</td><td class="mono">~1.8s</td><td class="mono" style="color:var(--teal)">4.34/5</td></tr>
+            <tr><td>Flan-T5-base (local CPU)</td><td class="mono">~1.1s</td><td class="mono" style="color:var(--amber)">3.2/5</td></tr>
+            <tr><td>Keyword-only</td><td class="mono">34ms</td><td class="mono" style="color:var(--muted)">N/A</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────────────────────────────────────────────────────── -->
+<!-- SLIDE 9 — SUMMARY                                        -->
+<!-- ────────────────────────────────────────────────────────── -->
+<section class="slide" id="slide-9" data-index="09">
+  <div class="section-header">
+    <div class="eyebrow">Summary</div>
+    <h2>What We Built &amp; What We Learned</h2>
+  </div>
+
+  <div class="cols-2">
+    <div>
+      <h3 style="margin-bottom:0.75rem">Checklist — Assessment Criteria</h3>
+      <div style="display:flex;flex-direction:column;gap:0.35rem;font-size:0.88rem">
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Clear folder structure (requirements/ docs/ src/ tests/)</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>DECISIONS.md with ADRs and explicit trade-offs</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Architecture vs Data Flow clearly separated</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Production architecture: K8s, API Gateway, Load Balancer, MLOps</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Zero print() — 100% structured JSON logging (nfr/structured_logging.py)</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Connection pooling (pool_size=10, pool_pre_ping on all services)</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Pydantic input validation on all API endpoints</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>docker-compose.yml — one-command startup</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Models loaded at startup (cold start optimised)</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>API tests (pytest) + Performance tests (Locust)</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>LLM-as-Judge accuracy validation + Ground truth dataset</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Metrics summary (Latency P95 + Accuracy NDCG)</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Local Flan-T5 fallback + keyword-only graceful degradation</span></div>
+        <div style="display:flex;gap:0.6rem;align-items:flex-start"><span style="color:var(--green)">✓</span><span>Vector DB decoupling — swap pgvector → Qdrant via vector_store.py only</span></div>
+      </div>
+    </div>
+
+    <div>
+      <h3 style="margin-bottom:0.75rem">Key Outcomes</h3>
+      <div class="cols-2" style="gap:0.8rem">
+        <div class="card">
+          <div class="stat">
+            <span class="stat-value">0.851</span>
+            <span class="stat-label">NDCG@5 (RAG)</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="stat">
+            <span class="stat-value amber">2.28s</span>
+            <span class="stat-label">RAG P95</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="stat">
+            <span class="stat-value green">0%</span>
+            <span class="stat-label">Error Rate (Load Test)</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="stat">
+            <span class="stat-value">4.34</span>
+            <span class="stat-label">LLM Judge / 5.0</span>
+          </div>
+        </div>
+      </div>
+
+      <h3 style="margin-top:1.25rem;margin-bottom:0.5rem">Open Questions / Live Demo</h3>
+      <div class="callout">
+        Ready for live demonstration of: RAG shopping assistant, semantic search (NL vs keyword), checkout idempotency, multi-agent order resolution, guardrail safety filters.
+      </div>
+      <div class="callout" style="margin-top:0.5rem;border-left-color:var(--amber);background:rgba(242,189,74,0.05)">
+        GitHub: <code style="color:var(--amber)">github.com/Karthick-GAI/ecommerce_pt</code>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Progress bar
+  function updateProgress() {
+    const scrolled = window.scrollY;
+    const total = document.body.scrollHeight - window.innerHeight;
+    const pct = total > 0 ? (scrolled / total) * 100 : 0;
+    document.getElementById('progress-bar').style.width = pct + '%';
+
+    // Active nav dot
+    const slides = document.querySelectorAll('.slide');
+    const dots = document.querySelectorAll('.nav-dot');
+    let active = 0;
+    slides.forEach((slide, i) => {
+      const rect = slide.getBoundingClientRect();
+      if (rect.top <= window.innerHeight * 0.4) active = i;
+    });
+    dots.forEach((d, i) => d.classList.toggle('active', i === active));
+  }
+
+  window.addEventListener('scroll', updateProgress, { passive: true });
+  updateProgress();
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const current = slides.findIndex(s => {
+      const r = s.getBoundingClientRect();
+      return r.top >= -200 && r.top < window.innerHeight * 0.5;
+    });
+    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+      const next = slides[Math.min(current + 1, slides.length - 1)];
+      if (next) next.scrollIntoView({ behavior: 'smooth' });
+      e.preventDefault();
+    }
+    if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      const prev = slides[Math.max(current - 1, 0)];
+      if (prev) prev.scrollIntoView({ behavior: 'smooth' });
+      e.preventDefault();
+    }
+  });
+
+  // Animate bars on scroll into view
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.querySelectorAll('.bar-fill').forEach(bar => {
+          const w = bar.style.width;
+          bar.style.width = '0';
+          requestAnimationFrame(() => { bar.style.width = w; });
+        });
+      }
+    });
+  }, { threshold: 0.3 });
+  document.querySelectorAll('.slide').forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

@@ -38,6 +38,7 @@ def root():
 def health():
     from database import SessionLocal
     from models import Product, ChatSession
+    from local_fallback import fallback_status
     db = SessionLocal()
     try:
         products = db.query(Product).filter(Product.is_active == True).count()
@@ -49,4 +50,5 @@ def health():
         "indexed_products": products,
         "active_sessions": sessions,
         "rag_backend": "pgvector + gpt-5.4-mini",
+        "local_fallback": fallback_status(),
     }

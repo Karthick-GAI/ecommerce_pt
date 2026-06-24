@@ -108,7 +108,7 @@ class CatalogueAnalyzer:
         from sqlalchemy.orm import Session
         analyzer = CatalogueAnalyzer()
         report = analyzer.analyse(db)
-        print(report.summary())
+        logging.getLogger(__name__).info(report.summary())
     """
 
     def analyse(

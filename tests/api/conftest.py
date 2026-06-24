@@ -8,6 +8,7 @@ BASE_URLS = {
     "checkout_service": os.getenv("CHECKOUT_URL", "http://localhost:8003"),
     "inventory_service": os.getenv("INVENTORY_URL", "http://localhost:8005"),
     "seller_portal": os.getenv("SELLER_PORTAL_URL", "http://localhost:8011"),
+    "shopping_assistant": os.getenv("SHOPPING_ASSISTANT_URL", "http://localhost:8012"),
 }
 
 TEST_USER = {

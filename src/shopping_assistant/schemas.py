@@ -20,6 +20,7 @@ class ChatResponse(BaseModel):
     reply: str
     sources: List[SourceProduct]
     parsed_filters: Optional[dict] = None
+    fallback_mode: bool = False     # True when Azure OpenAI was unavailable
 
 
 class MessageItem(BaseModel):

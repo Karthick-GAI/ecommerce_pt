@@ -1,9 +1,13 @@
+import logging
 import os
 from typing import List, Tuple
-from openai import AzureOpenAI
+
+from openai import AzureOpenAI, APITimeoutError, APIConnectionError, RateLimitError
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 _client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
@@ -13,33 +17,76 @@ _client = AzureOpenAI(
 
 GPT_MODEL = os.getenv("AZURE_OPENAI_GPT54_MINI_DEPLOYMENT", "gpt-5.4-mini")
 
+# Azure OpenAI call timeout — triggers local fallback if exceeded
+_AZURE_TIMEOUT_SECS = float(os.getenv("AZURE_TIMEOUT_SECS", "5.0"))
+
 
 # ── Step 1: Retrieve ──────────────────────────────────────────────────────────
 
 def retrieve_products(db, query: str, n: int = 8):
     """
     Parse the natural-language query → embed → pgvector cosine search.
-    Returns (results, parsed_filters).
+    Returns (results, parsed_filters, fallback_mode).
       results        = list of (Product ORM object, similarity_score)
       parsed_filters = dict extracted by GPT (category, brand, price, keywords)
+      fallback_mode  = "vector" | "keyword" — indicates which path was used
+
+    Graceful degradation:
+      - Primary: full semantic pipeline (parse → embed → pgvector)
+      - Fallback: keyword search if embedding fails (vector indexing unavailable)
     """
     from embeddings import embed_text, parse_nl_query
     from vector_store import semantic_search
 
-    parsed   = parse_nl_query(query)
-    keywords = parsed.get("keywords") or query
-    embedding = embed_text(keywords)
+    # Try full semantic pipeline
+    try:
+        parsed   = parse_nl_query(query)
+        keywords = parsed.get("keywords") or query
+        embedding = embed_text(keywords)
 
-    results = semantic_search(
-        db=db,
-        query_embedding=embedding,
-        n_results=n,
-        category=parsed.get("category"),
-        brand=parsed.get("brand"),
-        max_price=parsed.get("max_price"),
-        min_price=parsed.get("min_price"),
-    )
-    return results, parsed
+        results = semantic_search(
+            db=db,
+            query_embedding=embedding,
+            n_results=n,
+            category=parsed.get("category"),
+            brand=parsed.get("brand"),
+            max_price=parsed.get("max_price"),
+            min_price=parsed.get("min_price"),
+        )
+        return results, parsed, "vector"
+
+    except Exception as embed_err:
+        # Graceful degradation: vector indexing failed → keyword search fallback
+        logger.warning(
+            "retrieve_products: semantic pipeline failed (%s) — falling back to keyword search",
+            embed_err,
+        )
+        results = _keyword_search_fallback(db, query, n)
+        return results, {"keywords": query}, "keyword"
+
+
+def _keyword_search_fallback(db, query: str, n: int):
+    """Simple ILIKE keyword search used when vector pipeline is unavailable."""
+    from models import Product
+
+    terms = query.lower().split()[:4]   # use first 4 words to avoid over-filtering
+    q = db.query(Product).filter(Product.is_active == True)
+    for term in terms:
+        q = q.filter(Product.name.ilike(f"%{term}%"))
+    products = q.limit(n).all()
+
+    if not products:
+        # Broaden: search only on first keyword
+        products = (
+            db.query(Product)
+            .filter(Product.is_active == True)
+            .filter(Product.name.ilike(f"%{terms[0]}%"))
+            .limit(n)
+            .all()
+        )
+
+    # Wrap in (product, score) tuples to match semantic_search return type
+    return [(p, 0.0) for p in products]
 
 
 # ── Step 2: Build context ─────────────────────────────────────────────────────
@@ -107,27 +154,48 @@ def generate_reply(
     conversation_history: List[dict],
     context: str,
     user_message: str,
-) -> str:
+) -> tuple[str, bool]:
     """
     Call GPT-5.4-mini with:
       - system prompt containing the retrieved product context
       - last 6 turns of conversation history (3 exchanges)
       - the new user message
-    Returns the assistant's reply string.
+
+    Returns (reply_text, used_fallback).
+
+    Graceful degradation:
+      - Primary: Azure OpenAI GPT-5.4-mini
+      - Tier-1 fallback: local Flan-T5-base (if Azure times out or is unavailable)
+      - Tier-2 fallback: plain product list (if local model also fails)
     """
+    from local_fallback import generate_reply_local
+
     messages = [{"role": "system", "content": _SYSTEM_TEMPLATE.format(context=context)}]
     messages.extend(conversation_history[-6:])
     messages.append({"role": "user", "content": user_message})
 
+    # Primary: Azure OpenAI
     try:
         resp = _client.chat.completions.create(
             model=GPT_MODEL,
             messages=messages,
             temperature=0.7,
             max_completion_tokens=700,
+            timeout=_AZURE_TIMEOUT_SECS,
         )
-        return resp.choices[0].message.content or "I'm having trouble generating a response right now. Please try again."
-    except Exception as e:
-        import logging
-        logging.error(f"generate_reply failed: {e}")
-        return "I'm having trouble connecting to the AI service right now. Please try again in a moment."
+        text = resp.choices[0].message.content or ""
+        if text:
+            return text, False
+        raise ValueError("empty response from Azure OpenAI")
+
+    except (APITimeoutError, APIConnectionError, RateLimitError) as azure_err:
+        logger.warning(
+            "generate_reply: Azure OpenAI unavailable (%s) — activating local fallback",
+            type(azure_err).__name__,
+        )
+    except Exception as exc:
+        logger.error("generate_reply: unexpected Azure error: %s", exc)
+
+    # Tier-1 / Tier-2 fallback: local Flan-T5 or plain text
+    reply = generate_reply_local(context, user_message)
+    return reply, True   # used_fallback=True
