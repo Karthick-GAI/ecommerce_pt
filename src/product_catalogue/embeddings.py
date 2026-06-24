@@ -7,12 +7,18 @@
 #   This lets "lightweight laptop for college" find MacBook Air even if the
 #   product description never uses those exact words.
 
+import json
+import logging
 import os
 from typing import List
-from openai import AzureOpenAI
+from openai import AzureOpenAI, APITimeoutError, APIConnectionError, RateLimitError
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
+
+_AZURE_TIMEOUT_SECS = float(os.getenv("AZURE_TIMEOUT_SECS", "10.0"))
 
 _client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
@@ -25,29 +31,57 @@ GPT_MINI_MODEL  = os.getenv("AZURE_OPENAI_GPT54_MINI_DEPLOYMENT", "gpt-5.4-mini"
 
 
 def embed_text(text: str) -> List[float]:
-    """Embed a single text string. Truncates at 8000 chars to stay within token limit."""
+    """
+    Embed a single text string. Truncates at 8000 chars to stay within token limit.
+    Raises on Azure failure so callers (e.g. rag.py) can apply their own fallback.
+    """
     text = text.replace("\n", " ").strip()[:8000]
-    resp = _client.embeddings.create(input=[text], model=EMBEDDING_MODEL)
-    return resp.data[0].embedding
+    try:
+        resp = _client.embeddings.create(
+            input=[text], model=EMBEDDING_MODEL, timeout=_AZURE_TIMEOUT_SECS
+        )
+        return resp.data[0].embedding
+    except (APITimeoutError, APIConnectionError, RateLimitError) as exc:
+        logger.warning("embed_text: Azure unavailable (%s) — raising for caller fallback", type(exc).__name__)
+        raise
+    except Exception as exc:
+        logger.error("embed_text: unexpected error: %s", exc)
+        raise
 
 
 def embed_batch(texts: List[str]) -> List[List[float]]:
     """
     Embed a batch of texts in one API call (max 100 per call for text-embedding-3-small).
-    Much cheaper than calling embed_text() in a loop.
+    Falls back to per-item embedding if the batch call fails due to a transient error.
     """
     cleaned = [t.replace("\n", " ").strip()[:8000] for t in texts]
-    resp = _client.embeddings.create(input=cleaned, model=EMBEDDING_MODEL)
-    # API returns items sorted by index, so order is preserved
-    return [item.embedding for item in sorted(resp.data, key=lambda x: x.index)]
+    try:
+        resp = _client.embeddings.create(
+            input=cleaned, model=EMBEDDING_MODEL, timeout=_AZURE_TIMEOUT_SECS
+        )
+        return [item.embedding for item in sorted(resp.data, key=lambda x: x.index)]
+    except (APITimeoutError, APIConnectionError, RateLimitError) as exc:
+        logger.warning(
+            "embed_batch: batch call failed (%s) — retrying per-item", type(exc).__name__
+        )
+        # Per-item fallback: partial failures return None for that item
+        results = []
+        for t in cleaned:
+            try:
+                r = _client.embeddings.create(input=[t], model=EMBEDDING_MODEL, timeout=_AZURE_TIMEOUT_SECS)
+                results.append(r.data[0].embedding)
+            except Exception:
+                results.append(None)
+        return results
+    except Exception as exc:
+        logger.error("embed_batch: unexpected error: %s", exc)
+        raise
 
 
 def parse_nl_query(query: str) -> dict:
     """
     Use GPT-5.4-mini to extract structured filters from a natural language search query.
-    Example input:  "lightweight laptop under Rs.50000 with good battery life"
-    Example output: {"keywords": "lightweight laptop", "category": "Electronics",
-                     "max_price": 50000, "features": ["lightweight", "battery life"]}
+    Falls back to {keywords: query} if Azure is unavailable.
     """
     system_prompt = """You are a product search assistant for an Indian e-commerce platform.
 Extract search filters from the user's query and return ONLY a valid JSON object with these keys:
@@ -60,18 +94,21 @@ Extract search filters from the user's query and return ONLY a valid JSON object
 - features: list of required features/attributes (array of strings)
 Return only the JSON, no explanation."""
 
-    resp = _client.chat.completions.create(
-        model=GPT_MINI_MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": query},
-        ],
-        temperature=0,
-        response_format={"type": "json_object"},
-    )
-    import json
     try:
+        resp = _client.chat.completions.create(
+            model=GPT_MINI_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user",   "content": query},
+            ],
+            temperature=0,
+            response_format={"type": "json_object"},
+            timeout=_AZURE_TIMEOUT_SECS,
+        )
         return json.loads(resp.choices[0].message.content)
+    except (APITimeoutError, APIConnectionError, RateLimitError) as exc:
+        logger.warning("parse_nl_query: Azure unavailable (%s) — keyword-only fallback", type(exc).__name__)
+        return {"keywords": query, "features": []}
     except Exception:
         return {"keywords": query, "features": []}
 

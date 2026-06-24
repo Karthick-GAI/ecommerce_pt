@@ -13,13 +13,21 @@ Flow per turn:
   5. Safety cap: max MAX_TOOL_ROUNDS iterations before giving a graceful error.
 """
 import json
+import logging
 import os
-from openai import AzureOpenAI, AsyncAzureOpenAI
+from openai import AzureOpenAI, AsyncAzureOpenAI, APITimeoutError, APIConnectionError, RateLimitError
 from sqlalchemy.orm import Session
 from models import AgentSession, AgentMessage, Customer
 from tools.registry import TOOL_SCHEMAS, dispatch
 
+logger = logging.getLogger(__name__)
+
 MAX_TOOL_ROUNDS = 6
+_AZURE_TIMEOUT_SECS = float(os.getenv("AZURE_TIMEOUT_SECS", "30.0"))
+_UNAVAILABLE_MSG = (
+    "I'm sorry, the AI service is temporarily unavailable. "
+    "Please try again in a moment."
+)
 
 # ── Azure OpenAI clients ──────────────────────────────────────────────────────
 
@@ -186,12 +194,31 @@ def run_agent(
     tools_used: list[str] = []
 
     for _ in range(MAX_TOOL_ROUNDS):
-        response = client.chat.completions.create(
-            model       = model,
-            messages    = messages,
-            tools       = TOOL_SCHEMAS,
-            tool_choice = "auto",
-        )
+        try:
+            response = client.chat.completions.create(
+                model       = model,
+                messages    = messages,
+                tools       = TOOL_SCHEMAS,
+                tool_choice = "auto",
+                timeout     = _AZURE_TIMEOUT_SECS,
+            )
+        except (APITimeoutError, APIConnectionError, RateLimitError) as exc:
+            logger.warning("run_agent: Azure unavailable (%s) — returning degraded response", type(exc).__name__)
+            _save_assistant_message(session.id, _UNAVAILABLE_MSG, None, db)
+            return {
+                "response":   _UNAVAILABLE_MSG,
+                "tools_used": list(dict.fromkeys(tools_used)),
+                "session_id": session.id,
+            }
+        except Exception as exc:
+            logger.error("run_agent: unexpected Azure error: %s", exc)
+            _save_assistant_message(session.id, _UNAVAILABLE_MSG, None, db)
+            return {
+                "response":   _UNAVAILABLE_MSG,
+                "tools_used": list(dict.fromkeys(tools_used)),
+                "session_id": session.id,
+            }
+
         choice = response.choices[0]
 
         if choice.finish_reason == "tool_calls":
@@ -282,12 +309,27 @@ async def run_agent_stream(
 
     # ── Tool-calling rounds (non-streamed) ────────────────────────────────
     for _ in range(MAX_TOOL_ROUNDS):
-        response = await client.chat.completions.create(
-            model       = model,
-            messages    = messages,
-            tools       = TOOL_SCHEMAS,
-            tool_choice = "auto",
-        )
+        try:
+            response = await client.chat.completions.create(
+                model       = model,
+                messages    = messages,
+                tools       = TOOL_SCHEMAS,
+                tool_choice = "auto",
+                timeout     = _AZURE_TIMEOUT_SECS,
+            )
+        except (APITimeoutError, APIConnectionError, RateLimitError) as exc:
+            logger.warning("run_agent_stream: Azure unavailable (%s) — degraded response", type(exc).__name__)
+            _save_assistant_message(session.id, _UNAVAILABLE_MSG, None, db)
+            yield {"type": "token",  "content": _UNAVAILABLE_MSG}
+            yield {"type": "done",   "tools_used": list(dict.fromkeys(tools_used)), "session_id": session.id}
+            return
+        except Exception as exc:
+            logger.error("run_agent_stream: unexpected Azure error: %s", exc)
+            _save_assistant_message(session.id, _UNAVAILABLE_MSG, None, db)
+            yield {"type": "error",  "message": str(exc)}
+            yield {"type": "done",   "tools_used": list(dict.fromkeys(tools_used)), "session_id": session.id}
+            return
+
         choice = response.choices[0]
 
         if choice.finish_reason == "tool_calls":
@@ -324,17 +366,23 @@ async def run_agent_stream(
 
         else:
             # ── Stream final answer ───────────────────────────────────────
-            stream = await client.chat.completions.create(
-                model    = model,
-                messages = messages,
-                stream   = True,
-            )
-            full_response = ""
-            async for chunk in stream:
-                delta = chunk.choices[0].delta if chunk.choices else None
-                if delta and delta.content:
-                    full_response += delta.content
-                    yield {"type": "token", "content": delta.content}
+            try:
+                stream = await client.chat.completions.create(
+                    model    = model,
+                    messages = messages,
+                    stream   = True,
+                    timeout  = _AZURE_TIMEOUT_SECS,
+                )
+                full_response = ""
+                async for chunk in stream:
+                    delta = chunk.choices[0].delta if chunk.choices else None
+                    if delta and delta.content:
+                        full_response += delta.content
+                        yield {"type": "token", "content": delta.content}
+            except (APITimeoutError, APIConnectionError, RateLimitError) as exc:
+                logger.warning("run_agent_stream: stream failed (%s)", type(exc).__name__)
+                full_response = _UNAVAILABLE_MSG
+                yield {"type": "token", "content": _UNAVAILABLE_MSG}
 
             _save_assistant_message(session.id, full_response, None, db)
             yield {

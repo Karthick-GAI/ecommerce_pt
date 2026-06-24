@@ -1,8 +1,11 @@
 import json
+import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from database import get_db
 from models import Cart, Order, OrderItem, Payment, Product, IdempotencyRecord
@@ -93,7 +96,12 @@ def initiate_checkout(
         shipping_pincode=payload.shipping.pincode,
     )
     db.add(order)
-    db.flush()
+    try:
+        db.flush()
+    except Exception as exc:
+        db.rollback()
+        logger.error("initiate_checkout: db.flush failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to create order — please retry")
 
     order_items = []
     for item in cart.items:
@@ -110,8 +118,13 @@ def initiate_checkout(
         db.add(oi)
         order_items.append(oi)
 
-    db.commit()
-    db.refresh(order)
+    try:
+        db.commit()
+        db.refresh(order)
+    except Exception as exc:
+        db.rollback()
+        logger.error("initiate_checkout: db.commit failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Failed to persist order — please retry")
 
     response_obj = OrderSummaryResponse(
         order_id=order.id,
@@ -223,7 +236,12 @@ def pay_order(
         order.payment_status = "failed"
         message = f"Payment failed: {result.get('reason', 'Please try again')}"
 
-    db.commit()
+    try:
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.error("pay_order: db.commit failed for order %s: %s", order_id, exc)
+        raise HTTPException(status_code=500, detail="Payment recorded but order update failed — contact support")
 
     response_obj = PaymentResponse(
         order_id=order_id,

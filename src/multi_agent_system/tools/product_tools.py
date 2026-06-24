@@ -1,4 +1,5 @@
 """Product search and detail tools for the Recommendation Agent."""
+import logging
 import os
 import json
 from sqlalchemy.orm import Session
@@ -9,16 +10,22 @@ from tools.shared_models import Product
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 _client = AzureOpenAI(
     api_key=os.getenv("AZURE_OPENAI_API_KEY"),
     api_version=os.getenv("AZURE_OPENAI_API_VERSION", "2025-04-01-preview"),
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", ""),
 )
 _EMBED_MODEL = os.getenv("AZURE_OPENAI_EMBEDDING_SMALL", "text-embedding-3-small")
+_AZURE_TIMEOUT_SECS = float(os.getenv("AZURE_TIMEOUT_SECS", "10.0"))
 
 
 def _embed(text_input: str) -> list:
-    resp = _client.embeddings.create(model=_EMBED_MODEL, input=text_input)
+    """Raises on failure — search_products catches and falls back to keyword search."""
+    resp = _client.embeddings.create(
+        model=_EMBED_MODEL, input=text_input, timeout=_AZURE_TIMEOUT_SECS
+    )
     return resp.data[0].embedding
 
 

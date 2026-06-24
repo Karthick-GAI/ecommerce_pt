@@ -22,6 +22,7 @@ _client = AzureOpenAI(
     azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT", ""),
 )
 _MODEL = os.getenv("AZURE_OPENAI_GPT54_MINI_DEPLOYMENT", "gpt-5.4-mini")
+_AZURE_TIMEOUT_SECS = float(os.getenv("AZURE_TIMEOUT_SECS", "5.0"))
 
 _ROUTING_SYSTEM_PROMPT = """You are the orchestrator for an AI-powered e-commerce multi-agent system.
 Classify the user message into exactly one of these agent domains:
@@ -81,6 +82,7 @@ def route(message: str, history: Optional[List[Dict]] = None) -> RoutingDecision
             response_format={"type": "json_object"},
             temperature=0.0,
             max_completion_tokens=256,
+            timeout=_AZURE_TIMEOUT_SECS,
         )
         raw = response.choices[0].message.content or "{}"
         data = json.loads(raw)
