@@ -37,6 +37,22 @@ class Product(Base):
     created_at      = Column(DateTime,     default=datetime.utcnow)
 
 
+# ── Read-only Order model ─────────────────────────────────────────────────────
+# Maps to orders table owned by the order_management service.
+# shopping_assistant reads this to build personalised purchase history context.
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    order_id        = Column(String, primary_key=True)
+    user_id         = Column(String, nullable=True, index=True)
+    order_status    = Column(String, nullable=False)
+    payment_status  = Column(String, nullable=False)
+    total_amount    = Column(Float,  nullable=False)
+    cart_activity   = Column(JSONB,  nullable=False)   # [{product_id, quantity, unit_price}]
+    created_at      = Column(DateTime, default=datetime.utcnow)
+
+
 # ── Chat session tables ───────────────────────────────────────────────────────
 
 class ChatSession(Base):

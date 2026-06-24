@@ -5,6 +5,7 @@ from pydantic import BaseModel
 class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None
+    user_id: Optional[str] = None   # pass logged-in user's ID for personalised replies
 
 
 class SourceProduct(BaseModel):

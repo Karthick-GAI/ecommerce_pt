@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import ChatSession, ChatMessage
-from rag import retrieve_products, build_context, generate_reply
+from rag import retrieve_products, build_context, generate_reply, fetch_purchase_history
 from schemas import ChatRequest, ChatResponse, HistoryResponse, SourceProduct, MessageItem
 
 router = APIRouter(prefix="/chat", tags=["Shopping Assistant"])
@@ -57,6 +57,7 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)):
     # ── 3-6. RAG pipeline (with graceful degradation) ──────
     results, parsed_filters, retrieval_mode = retrieve_products(db, payload.message, n=8)
     context = build_context(results)
+    purchase_history = fetch_purchase_history(db, payload.user_id)
 
     if retrieval_mode == "keyword":
         # Vector indexing failed — skip GPT, format keyword results directly
@@ -64,7 +65,9 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)):
         reply        = format_keyword_results([p for p, _ in results])
         used_fallback = True
     else:
-        reply, used_fallback = generate_reply(conversation_history, context, payload.message)
+        reply, used_fallback = generate_reply(
+            conversation_history, context, payload.message, purchase_history
+        )
 
     # ── 7. Persist this turn ────────────────────────────────
     source_refs = [

@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from openai import AzureOpenAI, APITimeoutError, APIConnectionError, RateLimitError
 from dotenv import load_dotenv
@@ -89,6 +89,71 @@ def _keyword_search_fallback(db, query: str, n: int):
     return [(p, 0.0) for p in products]
 
 
+# ── Step 1b: Fetch purchase history ──────────────────────────────────────────
+
+def fetch_purchase_history(db, user_id: Optional[str]) -> Optional[str]:
+    """
+    Return a formatted purchase-history string for the given user, or None.
+
+    Process:
+      1. Query last 5 orders for user_id, ordered by created_at DESC.
+      2. Collect all unique product_ids from cart_activity JSONB items.
+      3. JOIN products table to resolve names.
+      4. Return a structured text block injected into the GPT system prompt.
+    """
+    if not user_id:
+        return None
+
+    try:
+        from models import Order, Product
+
+        orders = (
+            db.query(Order)
+            .filter(Order.user_id == user_id)
+            .order_by(Order.created_at.desc())
+            .limit(5)
+            .all()
+        )
+        if not orders:
+            return None
+
+        # Collect product_ids from cart_activity across all recent orders
+        product_ids: list[str] = []
+        for order in orders:
+            items = order.cart_activity or []
+            for item in items:
+                pid = item.get("product_id")
+                if pid and pid not in product_ids:
+                    product_ids.append(pid)
+
+        if not product_ids:
+            return None
+
+        # Resolve names in one query
+        products = (
+            db.query(Product.id, Product.name, Product.category)
+            .filter(Product.id.in_(product_ids))
+            .all()
+        )
+        name_map = {p.id: (p.name, p.category) for p in products}
+
+        lines = ["USER PURCHASE HISTORY (recent purchases — use to personalise recommendations):\n"]
+        for order in orders:
+            items = order.cart_activity or []
+            for item in items:
+                pid = item.get("product_id")
+                qty = item.get("quantity", 1)
+                if pid in name_map:
+                    pname, pcat = name_map[pid]
+                    lines.append(f"  - {pname} (Category: {pcat}, Qty: {qty})")
+
+        return "\n".join(lines)
+
+    except Exception as exc:
+        logger.warning("fetch_purchase_history: failed for user %s: %s", user_id, exc)
+        return None
+
+
 # ── Step 2: Build context ─────────────────────────────────────────────────────
 
 def build_context(results: List[Tuple]) -> str:
@@ -137,7 +202,7 @@ You are a helpful shopping assistant for an Indian e-commerce platform.
 Help customers find products, check availability, get recommendations, and compare options.
 
 {context}
-
+{purchase_history_section}
 Guidelines:
 - Answer using ONLY the products listed above. Do not invent products or prices.
 - Format all prices in Indian Rupees with commas: ₹12,999
@@ -146,7 +211,8 @@ Guidelines:
 - Comparisons: concise bullet points highlighting key differences
 - If no suitable products found: say so honestly, suggest what to search for instead
 - Keep replies concise (3-6 sentences) unless a detailed comparison is requested
-- Be warm, knowledgeable, and helpful — like a trusted store assistant\
+- Be warm, knowledgeable, and helpful — like a trusted store assistant
+- When purchase history is provided, personalise suggestions based on the user's past choices\
 """
 
 
@@ -154,6 +220,7 @@ def generate_reply(
     conversation_history: List[dict],
     context: str,
     user_message: str,
+    purchase_history: Optional[str] = None,
 ) -> tuple[str, bool]:
     """
     Call GPT-5.4-mini with:
@@ -170,7 +237,12 @@ def generate_reply(
     """
     from local_fallback import generate_reply_local
 
-    messages = [{"role": "system", "content": _SYSTEM_TEMPLATE.format(context=context)}]
+    ph_section = f"\n{purchase_history}\n" if purchase_history else ""
+    system_prompt = _SYSTEM_TEMPLATE.format(
+        context=context,
+        purchase_history_section=ph_section,
+    )
+    messages = [{"role": "system", "content": system_prompt}]
     messages.extend(conversation_history[-6:])
     messages.append({"role": "user", "content": user_message})
 
