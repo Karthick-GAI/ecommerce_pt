@@ -39,11 +39,7 @@ export default function Products() {
       if (minPrice) apiParams.min_price = minPrice
       if (maxPrice) apiParams.max_price = maxPrice
 
-      // Map sort UI values to API params
-      if (sortBy === 'price_asc')  { apiParams.sort_by = 'price'; apiParams.order = 'asc' }
-      else if (sortBy === 'price_desc') { apiParams.sort_by = 'price'; apiParams.order = 'desc' }
-      else if (sortBy === 'discount') { apiParams.sort_by = 'discount_pct'; apiParams.order = 'desc' }
-      else { apiParams.sort_by = sortBy; apiParams.order = 'desc' }
+      apiParams.sort_by = sortBy
 
       let res
       if (q) {

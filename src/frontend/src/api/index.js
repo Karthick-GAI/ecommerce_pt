@@ -40,7 +40,7 @@ export const productsApi = {
   list: (params = {}) => productApi.get('/products', { params }),
   get:  (id)           => productApi.get(`/products/${id}`),
   search: (query, params = {}) =>
-    productApi.get('/products/search', { params: { q: query, ...params } }),
+    productApi.get('/search/keyword', { params: { q: query, ...params } }),
   categories: () => productApi.get('/categories'),
   featured: () => productApi.get('/products', { params: { limit: 8, sort_by: 'rating', order: 'desc' } }),
 }

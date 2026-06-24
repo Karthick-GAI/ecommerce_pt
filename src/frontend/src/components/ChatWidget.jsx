@@ -29,16 +29,18 @@ export default function ChatWidget() {
     setLoading(true)
 
     try {
-      const res = await assistantApi.chat(text, chatSessionRef.current || sessionId)
+      const res = await assistantApi.chat(text, chatSessionRef.current)
       chatSessionRef.current = res.data.session_id || chatSessionRef.current
 
-      const reply   = res.data.response || res.data.message || 'Sorry, I could not process that.'
-      const products = res.data.products || res.data.results || []
+      const reply    = res.data.reply || res.data.response || res.data.message || 'Sorry, I could not process that.'
+      const products = res.data.products || res.data.results || res.data.sources || []
 
+      console.log('[ShopAI] response:', { reply, sources: products.length, session: chatSessionRef.current })
       setMessages(m => [...m,
         { role: 'bot', text: reply, products }
       ])
     } catch (err) {
+      console.error('[ShopAI] chat error:', err?.response?.status, err?.response?.data || err?.message)
       setMessages(m => [...m, {
         role: 'bot', text: 'Sorry, the assistant is temporarily unavailable.',
       }])

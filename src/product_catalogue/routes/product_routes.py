@@ -28,6 +28,7 @@ SORT_MAP = {
     "price_desc": Product.price.desc(),
     "rating":     Product.rating_avg.desc(),
     "newest":     Product.created_at.desc(),
+    "created_at": Product.created_at.desc(),
     "discount":   Product.discount_pct.desc(),
     "popularity": Product.rating_count.desc(),
 }

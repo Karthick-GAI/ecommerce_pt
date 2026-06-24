@@ -36,7 +36,7 @@ def keyword_search(
     price_max:  Optional[float] = None,
     rating_min: Optional[float] = Query(None, ge=1, le=5),
     in_stock:   bool = False,
-    sort_by:    str  = Query("relevance", enum=["relevance", "price_asc", "price_desc", "rating", "newest"]),
+    sort_by:    str  = Query("relevance", enum=["relevance", "price_asc", "price_desc", "rating", "newest", "created_at", "discount"]),
     page:       int  = Query(1, ge=1),
     limit:      int  = Query(20, ge=1, le=100),
     db:         Session = Depends(get_db),
@@ -68,6 +68,8 @@ def keyword_search(
         "price_desc": Product.price.desc(),
         "rating":     Product.rating_avg.desc(),
         "newest":     Product.created_at.desc(),
+        "created_at": Product.created_at.desc(),
+        "discount":   Product.discount_pct.desc(),
     }
     total    = query.count()
     products = query.order_by(ORDER[sort_by]).offset((page - 1) * limit).limit(limit).all()

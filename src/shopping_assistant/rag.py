@@ -119,10 +119,15 @@ def generate_reply(
     messages.extend(conversation_history[-6:])
     messages.append({"role": "user", "content": user_message})
 
-    resp = _client.chat.completions.create(
-        model=GPT_MODEL,
-        messages=messages,
-        temperature=0.7,
-        max_completion_tokens=700,
-    )
-    return resp.choices[0].message.content
+    try:
+        resp = _client.chat.completions.create(
+            model=GPT_MODEL,
+            messages=messages,
+            temperature=0.7,
+            max_completion_tokens=700,
+        )
+        return resp.choices[0].message.content or "I'm having trouble generating a response right now. Please try again."
+    except Exception as e:
+        import logging
+        logging.error(f"generate_reply failed: {e}")
+        return "I'm having trouble connecting to the AI service right now. Please try again in a moment."
