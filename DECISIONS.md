@@ -180,20 +180,38 @@ Weight thresholds (≥5 purchases = "active") are heuristic. Production system w
 
 ---
 
-## ADR-008 — Caching: Redis for Semantic Search, No Cache for Personalised
+## ADR-008 — Caching: In-Process TTLCache (capstone) → Redis (production)
 
-**Status**: Accepted  
-**Date**: 2026-06-01
+**Status**: Implemented  
+**Date**: 2026-06-24
 
 ### Context
-Semantic search for popular queries is expensive (~120ms embedding + vector search). Personalised recommendations must not be cached across users.
+Semantic search for popular queries is expensive (~120ms embedding + vector search). Discovery endpoints (trending, categories) are expensive DB aggregations. Personalised recommendations must not be cached across users.
 
 ### Decision
-- Semantic search queries: Redis cache with 15-minute TTL (LRU eviction)
-- Personalised recommendations: no cache — always computed fresh
+In-process `cachetools.TTLCache` with `threading.Lock` per cache instance. Deployed across 3 services:
+
+| Service · Cache | TTL | maxsize |
+|---|---|---|
+| shopping_assistant · `embed_text` | 5 min | 512 |
+| shopping_assistant · `parse_nl_query` | 5 min | 512 |
+| product_catalogue · categories | 1 hour | 4 |
+| product_catalogue · brands | 1 hour | 16 |
+| recommendation_engine · trending / deals | 30 min | 32 / 16 |
+| recommendation_engine · top-viewed / new-arrivals | 15 min | 16 |
+| recommendation_engine · homepage (per customer) | 5 min | 500 |
+| recommendation_engine · categories | 1 hour | 4 |
+
+Cache hit stats are exposed on each service's `/health` endpoint (`embedding_cache` key).  
+Personalised recommendations (`/recommendations/for/{id}`) are intentionally excluded — always computed fresh.
 
 ### Trade-off
-Redis adds infrastructure. For capstone, in-process LRU (`cachetools`) replaces Redis to avoid an extra service. Production would use Redis Cluster.
+In-process counters do not aggregate across service replicas. Production fix: swap `storage_uri` to `redis://...` — one-line change per service. Redis Cluster on ElastiCache for cross-replica shared cache in K8s.
+
+### Implementation files
+- `src/shopping_assistant/embeddings.py` — `_embed_cache`, `_parse_cache`
+- `src/product_catalogue/routes/category_routes.py` — `_cat_cache`, `_brand_cache`
+- `src/recommendation_engine/routes/recommendation_routes.py` — 6 cache instances
 
 ---
 
@@ -260,20 +278,34 @@ LLM-as-Judge via `guardrails_service` using GPT-5.4-mini with a structured JSON 
 
 ---
 
-## ADR-012 — ML Resiliency: Local Flan-T5 Fallback
+## ADR-012 — ML Resiliency: Graceful Degradation across All Azure-Dependent Services
 
-**Status**: Accepted  
+**Status**: Implemented  
 **Date**: 2026-06-24
 
 ### Context
-If Azure OpenAI is unavailable, the shopping assistant should degrade gracefully rather than returning a 503.
+If Azure OpenAI is unavailable or slow, every service that calls it must degrade gracefully rather than returning a 503 or hanging. Five services make direct Azure calls.
 
 ### Decision
-Two-tier fallback:
-1. **Flan-T5-base** (local, CPU) activated when Azure call times out (>5s) or circuit breaker is open
-2. **Keyword-only search** activated if vector indexing fails (no embeddings available)
+Each Azure-dependent service has its own fallback chain triggered by `APITimeoutError`, `APIConnectionError`, or `RateLimitError`. All Azure calls are wrapped with a configurable timeout via `AZURE_TIMEOUT_SECS` env var.
 
-Implementation: `src/shopping_assistant/local_fallback.py`
+| Service | Fallback chain | API signal |
+|---|---|---|
+| `shopping_assistant` | Azure → Flan-T5-base (CPU) → keyword ILIKE | `fallback_mode: true` |
+| `product_catalogue` | Azure timeout → keyword-only NL parse; batch embed → per-item retry | graceful 200 |
+| `multi_agent_system` router | Azure timeout → `_FALLBACK` RoutingDecision (customer_support) | graceful 200 |
+| `multi_agent_system` tools | Azure timeout → keyword ILIKE product search | graceful 200 |
+| `tool_calling_agent` | Azure timeout/error → `_UNAVAILABLE_MSG` saved to DB | graceful 200 |
+| `checkout_service` | DB flush/commit failure → `db.rollback()` + HTTP 500 + detail | HTTP 500 |
+
+### Implementation files
+- `src/shopping_assistant/local_fallback.py` — Flan-T5 + keyword fallback
+- `src/shopping_assistant/rag.py` — timeout + fallback routing
+- `src/product_catalogue/embeddings.py` — timeout + per-item fallback
+- `src/multi_agent_system/orchestrator/router.py` — timeout + `_FALLBACK`
+- `src/multi_agent_system/tools/product_tools.py` — timeout + keyword search
+- `src/tool_calling_agent/agent/loop.py` — timeout + graceful message
+- `src/checkout_service/routes/checkout_routes.py` — rollback on DB failure
 
 ### Trade-off
-Flan-T5-base quality is lower than GPT-5.4-mini. Cold load (~3s on CPU). Models loaded at startup to eliminate per-request cold start. The fallback is clearly labelled in API responses (`"fallback_mode": true`).
+Flan-T5-base quality is 3.2/5.0 vs GPT's 4.34/5.0. Cold load (~3s on CPU). Models loaded at startup to eliminate per-request cold start. The fallback is clearly labelled in API responses (`"fallback_mode": true`). All timeouts are environment-configurable — no code change required to tune per deployment.

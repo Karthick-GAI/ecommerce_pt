@@ -13,6 +13,7 @@ This document describes the **target production deployment** of the AI-powered e
 | Scaling | Manual (one process per service) | HPA — auto-scales on CPU/RPS |
 | DB | Shared PostgreSQL + SQLite on localhost | RDS PostgreSQL per service domain + PgBouncer |
 | Vector store | pgvector on shared PostgreSQL | Managed Qdrant / Pinecone at scale |
+| Caching | In-process TTLCache (`cachetools`) — 3 services | Redis Cluster + ElastiCache (shared across replicas) |
 | Circuit breaker state | In-process (single replica) | Redis-backed (shared across replicas) |
 | Rate limiting | In-process slowapi counters | API Gateway policies + Redis counters |
 | Secrets | `.env` file | Kubernetes Secrets / AWS Secrets Manager |
@@ -239,7 +240,7 @@ The current repository is a **proof-of-concept**. The following production compo
 | API Gateway | None (direct ports) | Kong / AWS APIGW |
 | Load Balancer | None | AWS ALB + K8s Ingress |
 | Kubernetes | None (bare processes) | EKS with HPA + Istio |
-| Redis | None | ElastiCache Redis Cluster |
+| Redis | In-process TTLCache (embed 5min, categories 1hr, trending 30min) | ElastiCache Redis Cluster (cross-replica shared) |
 | Distributed circuit breaker | In-process only | Redis-backed pybreaker |
 | Distributed rate limiter | In-process only | Redis-backed slowapi |
 | RDS per service | Shared PostgreSQL | RDS per domain |

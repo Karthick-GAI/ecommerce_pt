@@ -292,7 +292,7 @@ html, body {
 </style>
 
 <div id="pres">
-  <div id="progress"><div id="progress-fill" style="width:9.09%"></div></div>
+  <div id="progress"><div id="progress-fill" style="width:8.33%"></div></div>
 
   <div id="stage">
 
@@ -332,7 +332,7 @@ html, body {
         </div>
         <div class="agenda-row ai-topic">
           <div class="agenda-time">0:15 – 0:25</div>
-          <div><div class="agenda-topic">AI/RAG Pipeline & Key Design Decisions</div><div class="agenda-sub">NL parse → embed → pgvector → GPT; purchase history personalisation; 12 ADRs</div></div>
+          <div><div class="agenda-topic">AI/RAG Pipeline, Resilience &amp; Design Decisions</div><div class="agenda-sub">NL parse → embed → pgvector → GPT; purchase history personalisation; fallback + caching; 12 ADRs</div></div>
         </div>
         <div class="agenda-row eval-topic">
           <div class="agenda-time">0:25 – 0:35</div>
@@ -526,7 +526,7 @@ html, body {
         </div>
 
         <div class="card card-sm" style="border-color:rgba(232,184,75,0.3)">
-          <div class="eyebrow" style="color:var(--gold);margin-bottom:0.4rem">Purchase History Personalisation (new)</div>
+          <div class="eyebrow" style="color:var(--pass);margin-bottom:0.4rem">Purchase History Personalisation — Implemented ✓</div>
           <div class="body-text" style="font-size:0.78rem">
             <strong>user_id</strong> in ChatRequest → query <code>orders</code> table → parse <code>cart_activity</code> JSONB → JOIN products for names → inject as <em>"USER PURCHASE HISTORY"</em> block into GPT system prompt.
             The model then tailors suggestions: <em>"Based on your recent purchases, you seem to prefer premium everyday electronics…"</em>
@@ -573,16 +573,58 @@ html, body {
           </div>
           <div class="adr-card">
             <div class="tag tag-blue" style="margin-bottom:0.5rem">ADR-012</div>
-            <div class="adr-decision">Two-tier local fallback</div>
-            <div class="adr-why">Flan-T5-base loaded at service startup (not per-request). Warm generation ~1.1s. Never returns 503. API response flags fallback_mode=true.</div>
-            <div class="adr-tradeoff">Trade-off: Flan-T5 quality 3.2/5.0 vs GPT's 4.34/5.0. Functional, transparent, and recovers automatically when Azure returns.</div>
+            <div class="adr-decision">Resilience across all 5 Azure-dependent services</div>
+            <div class="adr-why">shopping_assistant: Flan-T5-base → keyword ILIKE. product_catalogue, multi_agent router/tools, tool_calling_agent: timeout + graceful keyword/message fallback. checkout: db.rollback() on commit failure. Every service flags its failure mode.</div>
+            <div class="adr-tradeoff">Trade-off: Flan-T5 quality 3.2/5.0 vs GPT's 4.34/5.0. AZURE_TIMEOUT_SECS is env-configurable per service. System recovers automatically when Azure returns. See Slide 7 for full coverage table.</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ══ SLIDE 7 · EVALUATION — IR METRICS ════════════════════════ -->
+    <!-- ══ SLIDE 7 · RESILIENCE & CACHING ══════════════════════════ -->
     <div class="slide" data-n="07">
+      <div class="eyebrow">NFR Compliance — Resilience &amp; Performance</div>
+      <div class="slide-title">Fallback coverage: 5 services · TTL caching: 3 services</div>
+      <div class="slide-body">
+        <div class="g2" style="flex:1">
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:0.7rem">Graceful degradation — every Azure-dependent service (ADR-012)</div>
+            <table class="data-table">
+              <thead><tr><th>Service</th><th>Primary fails →</th><th>Signal</th></tr></thead>
+              <tbody>
+                <tr><td><strong>shopping_assistant</strong></td><td>Flan-T5-base → keyword ILIKE</td><td class="ok">fallback_mode=true</td></tr>
+                <tr><td><strong>product_catalogue</strong></td><td>keyword-only NL parse; per-item embed retry</td><td class="ok">graceful 200</td></tr>
+                <tr><td><strong>multi_agent router</strong></td><td>_FALLBACK routing → customer_support agent</td><td class="ok">graceful 200</td></tr>
+                <tr><td><strong>multi_agent tools</strong></td><td>keyword ILIKE product search</td><td class="ok">graceful 200</td></tr>
+                <tr><td><strong>tool_calling_agent</strong></td><td>_UNAVAILABLE_MSG saved to DB &amp; returned</td><td class="ok">graceful 200</td></tr>
+                <tr><td><strong>checkout_service</strong></td><td>db.rollback() on flush/commit failure</td><td class="ok">HTTP 500 + detail</td></tr>
+              </tbody>
+            </table>
+            <div class="body-text" style="font-size:0.68rem;color:var(--muted);margin-top:0.5rem">All Azure calls have explicit timeout (5–30s via AZURE_TIMEOUT_SECS env var). Traps: APITimeoutError · APIConnectionError · RateLimitError.</div>
+          </div>
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:0.7rem">In-process TTL caching — ADR-008 (cachetools.TTLCache + threading.Lock)</div>
+            <table class="data-table">
+              <thead><tr><th>Service · Cache</th><th>TTL</th><th>Max</th></tr></thead>
+              <tbody>
+                <tr><td>shopping_assistant · embed_text</td><td class="hi">5 min</td><td>512</td></tr>
+                <tr><td>shopping_assistant · parse_nl_query</td><td class="hi">5 min</td><td>512</td></tr>
+                <tr><td>product_catalogue · categories</td><td class="hi">1 hr</td><td>4</td></tr>
+                <tr><td>product_catalogue · brands</td><td class="hi">1 hr</td><td>16</td></tr>
+                <tr><td>recommendation · trending / deals</td><td class="hi">30 min</td><td>32 / 16</td></tr>
+                <tr><td>recommendation · top-viewed / arrivals</td><td class="hi">15 min</td><td>16</td></tr>
+                <tr><td>recommendation · homepage (per customer)</td><td class="hi">5 min</td><td>500</td></tr>
+                <tr><td>recommendation · categories</td><td class="hi">1 hr</td><td>4</td></tr>
+              </tbody>
+            </table>
+            <div class="body-text" style="font-size:0.68rem;color:var(--muted);margin-top:0.5rem">Cache stats exposed on each service's /health. Production path: swap storage_uri to Redis Cluster — one-line change per service.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 8 · EVALUATION — IR METRICS ════════════════════════ -->
+    <div class="slide" data-n="08">
       <div class="eyebrow">Evaluation · 30 queries × 126 relevance judgments</div>
       <div class="slide-title">All IR targets met — RAG outperforms baseline by 57%</div>
       <div class="slide-body">
@@ -660,8 +702,8 @@ html, body {
       </div>
     </div>
 
-    <!-- ══ SLIDE 8 · EVALUATION — QUALITY & LATENCY ═════════════════ -->
-    <div class="slide" data-n="08">
+    <!-- ══ SLIDE 9 · EVALUATION — QUALITY & LATENCY ═════════════════ -->
+    <div class="slide" data-n="09">
       <div class="eyebrow">Evaluation · Quality &amp; Performance</div>
       <div class="slide-title">LLM Judge 4.34/5.0 · P95 under 2.3s · Zero errors at 50 users</div>
       <div class="slide-body">
@@ -739,8 +781,8 @@ html, body {
       </div>
     </div>
 
-    <!-- ══ SLIDE 9 · PRODUCTION ARCHITECTURE ════════════════════════ -->
-    <div class="slide" data-n="09">
+    <!-- ══ SLIDE 10 · PRODUCTION ARCHITECTURE ═══════════════════════ -->
+    <div class="slide" data-n="10">
       <div class="eyebrow">Production Readiness</div>
       <div class="slide-title">POC → Production: defined migration path</div>
       <div class="slide-body">
@@ -789,8 +831,12 @@ html, body {
                 <div class="body-text" style="font-size:0.76rem"><span style="color:var(--gold)">POC:</span> Inline in FastAPI, cold start<br><span style="color:var(--pass)">Prod:</span> Torchserve / Triton sidecar, always warm</div>
               </div>
               <div class="card card-sm">
+                <div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:0.35rem">Caching</div>
+                <div class="body-text" style="font-size:0.76rem"><span style="color:var(--gold)">POC:</span> In-process TTLCache (cachetools) — 3 services<br><span style="color:var(--pass)">Prod:</span> Redis Cluster + ElastiCache; cross-replica shared cache</div>
+              </div>
+              <div class="card card-sm">
                 <div style="font-size:0.7rem;font-weight:700;color:var(--muted);margin-bottom:0.35rem">Observability</div>
-                <div class="body-text" style="font-size:0.76rem"><span style="color:var(--gold)">POC:</span> stdout JSON + /metrics endpoint<br><span style="color:var(--pass)">Prod:</span> Prometheus + Grafana + ELK + Jaeger</div>
+                <div class="body-text" style="font-size:0.76rem"><span style="color:var(--gold)">POC:</span> stdout JSON + /health + /metrics endpoint<br><span style="color:var(--pass)">Prod:</span> Prometheus + Grafana + ELK + Jaeger</div>
               </div>
             </div>
           </div>
@@ -798,8 +844,8 @@ html, body {
       </div>
     </div>
 
-    <!-- ══ SLIDE 10 · LIVE DEMO ══════════════════════════════════════ -->
-    <div class="slide" data-n="10">
+    <!-- ══ SLIDE 11 · LIVE DEMO ══════════════════════════════════════ -->
+    <div class="slide" data-n="11">
       <div class="eyebrow">Live Demo</div>
       <div class="slide-title">6 flows — ~10 minutes</div>
       <div class="slide-body">
@@ -856,8 +902,8 @@ html, body {
       </div>
     </div>
 
-    <!-- ══ SLIDE 11 · SUMMARY & Q&A ═════════════════════════════════ -->
-    <div class="slide" data-n="11">
+    <!-- ══ SLIDE 12 · SUMMARY & Q&A ═════════════════════════════════ -->
+    <div class="slide" data-n="12">
       <div class="eyebrow">Summary</div>
       <div class="slide-title">What worked, what to improve, what comes next</div>
       <div class="slide-body">
@@ -899,7 +945,7 @@ html, body {
   <div id="nav">
     <button class="nav-btn" id="prev" aria-label="Previous slide">←</button>
     <div id="dot-nav"></div>
-    <span id="counter">1 / 11</span>
+    <span id="counter">1 / 12</span>
     <button class="nav-btn" id="next" aria-label="Next slide">→</button>
   </div>
 </div>
