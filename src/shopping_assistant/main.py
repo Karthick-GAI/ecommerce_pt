@@ -45,10 +45,12 @@ def health():
         sessions = db.query(ChatSession).count()
     finally:
         db.close()
+    from embeddings import cache_stats
     return {
         "status": "ok",
         "indexed_products": products,
         "active_sessions": sessions,
         "rag_backend": "pgvector + gpt-5.4-mini",
         "local_fallback": fallback_status(),
+        "embedding_cache": cache_stats(),
     }

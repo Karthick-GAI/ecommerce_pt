@@ -1,5 +1,8 @@
+import threading
 from datetime import datetime, timezone
 from typing import Optional, Literal
+
+from cachetools import TTLCache
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import get_db
@@ -14,6 +17,24 @@ from recommenders.utils import merge_ranked, deduplicate
 
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 
+# ── In-process TTL caches (ADR-008) ──────────────────────────────────────────
+# Discovery endpoints (trending, deals, top-viewed, new-arrivals) are global —
+# same result for any user, stable for 30 minutes.
+# Homepage feed is per-customer, stable for 5 minutes before re-personalisation.
+_trending_cache:   TTLCache = TTLCache(maxsize=32,  ttl=1800)  # 30 min
+_deals_cache:      TTLCache = TTLCache(maxsize=16,  ttl=1800)  # 30 min
+_topviewed_cache:  TTLCache = TTLCache(maxsize=16,  ttl=900)   # 15 min
+_arrivals_cache:   TTLCache = TTLCache(maxsize=16,  ttl=900)   # 15 min
+_homepage_cache:   TTLCache = TTLCache(maxsize=500, ttl=300)   # 5 min, keyed on customer_id
+_reccats_cache:    TTLCache = TTLCache(maxsize=4,   ttl=3600)  # 1 h, category list
+
+_trending_lock  = threading.Lock()
+_deals_lock     = threading.Lock()
+_topviewed_lock = threading.Lock()
+_arrivals_lock  = threading.Lock()
+_homepage_lock  = threading.Lock()
+_reccats_lock   = threading.Lock()
+
 
 # ── GET /recommendations/homepage/{customer_id} ───────────────────────────────
 
@@ -22,20 +43,28 @@ def homepage_feed(customer_id: str, db: Session = Depends(get_db)):
     """
     Full personalised homepage with multiple recommendation sections.
     Section count and strategy adapt to the customer's interaction depth.
+    Cached per customer for 5 minutes (6 expensive DB sub-queries saved on hit).
     """
     customer = db.query(Customer).filter(Customer.user_id == customer_id).first()
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
-    sections = get_homepage_feed(db, customer_id)
+    with _homepage_lock:
+        if customer_id in _homepage_cache:
+            return _homepage_cache[customer_id]
 
-    return {
-        "customer_id":   customer_id,
-        "customer_name": f"{customer.first_name} {customer.last_name}",
-        "sections":      sections,
+    sections = get_homepage_feed(db, customer_id)
+    result = {
+        "customer_id":    customer_id,
+        "customer_name":  f"{customer.first_name} {customer.last_name}",
+        "sections":       sections,
         "total_sections": len(sections),
-        "generated_at":  str(datetime.now(timezone.utc)),
+        "generated_at":   str(datetime.now(timezone.utc)),
     }
+
+    with _homepage_lock:
+        _homepage_cache[customer_id] = result
+    return result
 
 
 # ── GET /recommendations/for/{customer_id} ────────────────────────────────────
@@ -142,14 +171,18 @@ def trending_products(
     limit:    int           = Query(20, ge=1, le=100),
     db: Session             = Depends(get_db),
 ):
-    """Most purchased products in the last N days."""
+    """Most purchased products in the last N days. Cached 30 minutes."""
+    cache_key = (days, category, limit)
+    with _trending_lock:
+        if cache_key in _trending_cache:
+            return _trending_cache[cache_key]
+
     recs = get_trending(db, days=days, limit=limit, category=category)
-    return {
-        "period_days": days,
-        "category":    category,
-        "count":       len(recs),
-        "trending":    recs,
-    }
+    result = {"period_days": days, "category": category, "count": len(recs), "trending": recs}
+
+    with _trending_lock:
+        _trending_cache[cache_key] = result
+    return result
 
 
 # ── GET /recommendations/top-viewed ───────────────────────────────────────────
@@ -160,13 +193,18 @@ def top_viewed(
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    """Most engaged-with products from browsing activity (weighted by event type)."""
+    """Most engaged-with products from browsing activity. Cached 15 minutes."""
+    cache_key = (days, limit)
+    with _topviewed_lock:
+        if cache_key in _topviewed_cache:
+            return _topviewed_cache[cache_key]
+
     recs = get_top_viewed(db, days=days, limit=limit)
-    return {
-        "period_days": days,
-        "count":       len(recs),
-        "top_viewed":  recs,
-    }
+    result = {"period_days": days, "count": len(recs), "top_viewed": recs}
+
+    with _topviewed_lock:
+        _topviewed_cache[cache_key] = result
+    return result
 
 
 # ── GET /recommendations/new-arrivals ─────────────────────────────────────────
@@ -177,13 +215,18 @@ def new_arrivals(
     limit:    int           = Query(20, ge=1, le=100),
     db: Session             = Depends(get_db),
 ):
-    """Most recently added products with available stock."""
+    """Most recently added products with available stock. Cached 15 minutes."""
+    cache_key = (category, limit)
+    with _arrivals_lock:
+        if cache_key in _arrivals_cache:
+            return _arrivals_cache[cache_key]
+
     recs = get_new_arrivals(db, limit=limit, category=category)
-    return {
-        "category": category,
-        "count":    len(recs),
-        "products": recs,
-    }
+    result = {"category": category, "count": len(recs), "products": recs}
+
+    with _arrivals_lock:
+        _arrivals_cache[cache_key] = result
+    return result
 
 
 # ── GET /recommendations/deals ────────────────────────────────────────────────
@@ -193,20 +236,32 @@ def top_deals(
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    """Highest-discount products with strong ratings and healthy stock."""
+    """Highest-discount products with strong ratings and healthy stock. Cached 30 minutes."""
+    cache_key = limit
+    with _deals_lock:
+        if cache_key in _deals_cache:
+            return _deals_cache[cache_key]
+
     recs = get_top_deals(db, limit=limit)
-    return {
-        "count":   len(recs),
-        "deals":   recs,
-    }
+    result = {"count": len(recs), "deals": recs}
+
+    with _deals_lock:
+        _deals_cache[cache_key] = result
+    return result
 
 
 # ── GET /recommendations/categories ───────────────────────────────────────────
 
 @router.get("/categories", tags=["Discovery"])
 def list_categories(db: Session = Depends(get_db)):
-    """All product categories available for filtering recommendations."""
+    """All product categories available for filtering recommendations. Cached 1 hour."""
     from sqlalchemy import func
+
+    cache_key = "all"
+    with _reccats_lock:
+        if cache_key in _reccats_cache:
+            return _reccats_cache[cache_key]
+
     rows = (
         db.query(Product.category, func.count(Product.id).label("count"))
         .filter(Product.is_active == True)
@@ -214,7 +269,11 @@ def list_categories(db: Session = Depends(get_db)):
         .order_by(Product.category)
         .all()
     )
-    return {
+    result = {
         "total":      len(rows),
         "categories": [{"category": r.category, "product_count": r.count} for r in rows],
     }
+
+    with _reccats_lock:
+        _reccats_cache[cache_key] = result
+    return result
