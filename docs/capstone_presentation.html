@@ -292,7 +292,7 @@ html, body {
 </style>
 
 <div id="pres">
-  <div id="progress"><div id="progress-fill" style="width:8.33%"></div></div>
+  <div id="progress"><div id="progress-fill" style="width:6.25%"></div></div>
 
   <div id="stage">
 
@@ -844,8 +844,344 @@ html, body {
       </div>
     </div>
 
-    <!-- ══ SLIDE 11 · LIVE DEMO ══════════════════════════════════════ -->
+    <!-- ══ SLIDE 11 · UI — HOME PAGE ════════════════════════════════════ -->
     <div class="slide" data-n="11">
+      <div class="eyebrow">Application UI · Screen 1 of 4</div>
+      <div class="slide-title">Home Page — Hero, Categories &amp; Smart Products</div>
+      <div class="slide-body" style="flex-direction:row;gap:1.25rem">
+        <div style="width:27%;display:flex;flex-direction:column;gap:0.6rem">
+          <div class="card card-sm" style="border-left:3px solid #3CB4E5">
+            <div style="font-size:0.64rem;font-weight:700;color:#3CB4E5;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">① Hero Banner</div>
+            <div class="body-text" style="font-size:0.72rem">Gradient landing (#EEF0FF → #FFF4F0). Headline "Discover what you <em>actually</em> want" with gradient text. "Shop Now" + "Best Sellers" CTAs. Stats card: 6,525+ AI-curated products.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #E8B84B">
+            <div style="font-size:0.64rem;font-weight:700;color:#E8B84B;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">② Category Grid</div>
+            <div class="body-text" style="font-size:0.72rem">8 emoji chips — Electronics 📱 Clothing 👕 Books 📚 Home 🏠 Sports ⚽ Beauty 💄 Automotive 🚗 Toys 🧸. One click navigates to a pre-filtered /products page.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #3FD68F">
+            <div style="font-size:0.64rem;font-weight:700;color:#3FD68F;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">③ Live Product Sections</div>
+            <div class="body-text" style="font-size:0.72rem">⭐ Top Rated (sort_by=rating) + New Arrivals (sort_by=created_at). Live API calls on page load. Cards show discount badge, star rating, INR price, Add-to-Cart — no page reload required.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #3CB4E5">
+            <div style="font-size:0.64rem;font-weight:700;color:#3CB4E5;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">④ AI Chat FAB</div>
+            <div class="body-text" style="font-size:0.72rem">Fixed 💬 button (bottom-right) persists on every page. Opens the ShopAI floating chat panel without losing current page context. Always accessible from any screen.</div>
+          </div>
+        </div>
+        <div style="flex:1;position:relative;display:flex;flex-direction:column;min-height:0;overflow:hidden">
+          <div style="background:#fff;border-radius:10px;overflow:hidden;flex:1;min-height:0;box-shadow:0 8px 40px rgba(0,0,0,.55);display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+            <div style="background:#e8e8ed;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <div style="display:flex;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f57"></div><div style="width:10px;height:10px;border-radius:50%;background:#ffbd2e"></div><div style="width:10px;height:10px;border-radius:50%;background:#28ca41"></div></div>
+              <div style="flex:1;background:#fff;border-radius:4px;padding:3px 10px;font-size:9px;color:#555;font-family:monospace">localhost:3000</div>
+            </div>
+            <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:0 14px;display:flex;align-items:center;gap:8px;height:40px;flex-shrink:0">
+              <div style="font-weight:800;font-size:12px;color:#5046e5;white-space:nowrap">🛍 ShopAI</div>
+              <div style="flex:1;background:#f3f4f6;border-radius:5px;padding:4px 10px;font-size:9px;color:#9ca3af">🔍 Search products...</div>
+              <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;font-size:9px;color:#6b7280"><span>Home</span><span>Products</span><span>Orders</span><div style="background:#5046e5;color:#fff;border-radius:5px;padding:3px 9px;font-size:9px;font-weight:600">🛒 Cart (0)</div></div>
+            </div>
+            <div style="background:linear-gradient(135deg,#eef0ff 0%,#f5f4ff 50%,#fff4f0 100%);padding:14px;display:flex;align-items:center;gap:10px;flex-shrink:0">
+              <div style="flex:1">
+                <div style="font-size:6px;font-weight:700;color:#5046e5;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">AI-Powered Shopping</div>
+                <div style="font-size:16px;font-weight:900;line-height:1.15;color:#111;margin-bottom:4px">Discover what you<br><span style="background:linear-gradient(90deg,#5046e5,#f97316);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent">actually</span> want</div>
+                <div style="font-size:7px;color:#6b7280;margin-bottom:7px;line-height:1.5">Smart search, personalised picks, and an AI assistant<br>that helps you find exactly what you're looking for.</div>
+                <div style="display:flex;gap:5px"><div style="background:#5046e5;color:#fff;border-radius:5px;padding:5px 11px;font-size:8px;font-weight:600">Shop Now</div><div style="border:1.5px solid #5046e5;color:#5046e5;border-radius:5px;padding:5px 11px;font-size:8px;font-weight:600">Best Sellers</div></div>
+              </div>
+              <div style="background:#fff;border-radius:10px;padding:10px 14px;box-shadow:0 4px 14px rgba(0,0,0,.1);text-align:center;flex-shrink:0"><div style="font-size:22px;margin-bottom:2px">🛍</div><div style="font-size:7px;color:#6b7280">6,525+ products</div><div style="font-size:7px;color:#6b7280">AI-curated for you</div></div>
+            </div>
+            <div style="padding:8px 14px;background:#fff;flex-shrink:0">
+              <div style="font-size:9px;font-weight:700;color:#111;margin-bottom:5px">Browse Categories</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap">
+                <div style="background:#f8f9fa;border:1.5px solid #e5e7eb;border-radius:7px;padding:4px 7px;font-size:8px;font-weight:600">📱 Electronics</div>
+                <div style="background:#f8f9fa;border:1.5px solid #e5e7eb;border-radius:7px;padding:4px 7px;font-size:8px;font-weight:600">👕 Clothing</div>
+                <div style="background:#f8f9fa;border:1.5px solid #e5e7eb;border-radius:7px;padding:4px 7px;font-size:8px;font-weight:600">📚 Books</div>
+                <div style="background:#f8f9fa;border:1.5px solid #e5e7eb;border-radius:7px;padding:4px 7px;font-size:8px;font-weight:600">🏠 Home &amp; Living</div>
+                <div style="background:#f8f9fa;border:1.5px solid #e5e7eb;border-radius:7px;padding:4px 7px;font-size:8px;font-weight:600">⚽ Sports</div>
+                <div style="background:#f8f9fa;border:1.5px solid #e5e7eb;border-radius:7px;padding:4px 7px;font-size:8px;font-weight:600">💄 Beauty</div>
+                <div style="background:#f8f9fa;border:1.5px solid #e5e7eb;border-radius:7px;padding:4px 7px;font-size:8px;font-weight:600">🚗 Automotive</div>
+                <div style="background:#f8f9fa;border:1.5px solid #e5e7eb;border-radius:7px;padding:4px 7px;font-size:8px;font-weight:600">🧸 Toys</div>
+              </div>
+            </div>
+            <div style="padding:8px 14px;background:#f8f9fa;flex:1;overflow:hidden">
+              <div style="font-size:9px;font-weight:700;color:#111;margin-bottom:6px">⭐ Top Rated Products</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+                <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;overflow:hidden"><div style="background:#e8f4fe;height:48px;display:flex;align-items:center;justify-content:center;position:relative"><span style="font-size:18px">🎧</span><span style="position:absolute;top:3px;left:3px;background:#f97316;color:#fff;border-radius:3px;padding:1px 4px;font-size:6px;font-weight:700">15% OFF</span></div><div style="padding:5px 6px"><div style="font-size:6px;color:#9ca3af;text-transform:uppercase;font-weight:600">SONY</div><div style="font-size:7px;font-weight:600;line-height:1.3;margin:1px 0">WH-1000XM5 Headphones</div><div style="color:#f97316;font-size:7px">★★★★★</div><div style="font-size:8px;font-weight:700;color:#5046e5;margin:2px 0">₹27,990</div><div style="background:#5046e5;color:#fff;border-radius:3px;padding:2px;text-align:center;font-size:6px;font-weight:600">+ Add to Cart</div></div></div>
+                <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;overflow:hidden"><div style="background:#e8fee8;height:48px;display:flex;align-items:center;justify-content:center"><span style="font-size:18px">📱</span></div><div style="padding:5px 6px"><div style="font-size:6px;color:#9ca3af;text-transform:uppercase;font-weight:600">SAMSUNG</div><div style="font-size:7px;font-weight:600;line-height:1.3;margin:1px 0">Galaxy Tab S9 FE 256GB</div><div style="color:#f97316;font-size:7px">★★★★☆</div><div style="font-size:8px;font-weight:700;color:#5046e5;margin:2px 0">₹42,999</div><div style="background:#5046e5;color:#fff;border-radius:3px;padding:2px;text-align:center;font-size:6px;font-weight:600">+ Add to Cart</div></div></div>
+                <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;overflow:hidden"><div style="background:#fff4e8;height:48px;display:flex;align-items:center;justify-content:center;position:relative"><span style="font-size:18px">👟</span><span style="position:absolute;top:3px;left:3px;background:#f97316;color:#fff;border-radius:3px;padding:1px 4px;font-size:6px;font-weight:700">20% OFF</span></div><div style="padding:5px 6px"><div style="font-size:6px;color:#9ca3af;text-transform:uppercase;font-weight:600">NIKE</div><div style="font-size:7px;font-weight:600;line-height:1.3;margin:1px 0">Air Zoom Pegasus 40</div><div style="color:#f97316;font-size:7px">★★★★★</div><div style="font-size:8px;font-weight:700;color:#5046e5;margin:2px 0">₹8,495</div><div style="background:#5046e5;color:#fff;border-radius:3px;padding:2px;text-align:center;font-size:6px;font-weight:600">+ Add to Cart</div></div></div>
+                <div style="background:#fff;border:1px solid #e5e7eb;border-radius:7px;overflow:hidden"><div style="background:#f4e8ff;height:48px;display:flex;align-items:center;justify-content:center;position:relative"><span style="font-size:18px">👕</span><span style="position:absolute;top:3px;left:3px;background:#f97316;color:#fff;border-radius:3px;padding:1px 4px;font-size:6px;font-weight:700">30% OFF</span></div><div style="padding:5px 6px"><div style="font-size:6px;color:#9ca3af;text-transform:uppercase;font-weight:600">LEVI'S</div><div style="font-size:7px;font-weight:600;line-height:1.3;margin:1px 0">Classic Fit Denim Jeans</div><div style="color:#f97316;font-size:7px">★★★★☆</div><div style="font-size:8px;font-weight:700;color:#5046e5;margin:2px 0">₹2,199 <span style="text-decoration:line-through;color:#9ca3af;font-weight:400">₹3,140</span></div><div style="background:#5046e5;color:#fff;border-radius:3px;padding:2px;text-align:center;font-size:6px;font-weight:600">+ Add to Cart</div></div></div>
+              </div>
+            </div>
+            <div style="background:linear-gradient(135deg,#5046e5,#3d33d4);padding:8px 14px;display:flex;align-items:center;gap:8px;color:#fff;flex-shrink:0">
+              <div style="font-size:18px">🤖</div>
+              <div style="flex:1"><div style="font-size:8px;font-weight:700;margin-bottom:1px">Meet your AI Shopping Assistant</div><div style="font-size:7px;opacity:.75">"show me running shoes under ₹3000" · "gift ideas for a 10-year-old?" — the chat widget is always available.</div></div>
+              <div style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:5px;padding:4px 9px;font-size:8px;font-weight:600;white-space:nowrap">Try it now →</div>
+            </div>
+          </div>
+          <div style="position:absolute;bottom:34px;right:8px;background:#5046e5;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 4px 14px rgba(80,70,229,.7);z-index:5">💬</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 12 · UI — PRODUCTS & SEARCH ════════════════════════════ -->
+    <div class="slide" data-n="12">
+      <div class="eyebrow">Application UI · Screen 2 of 4</div>
+      <div class="slide-title">Products Page — Sidebar Filters, Semantic Search &amp; Catalogue Browse</div>
+      <div class="slide-body" style="flex-direction:row;gap:1.25rem">
+        <div style="width:27%;display:flex;flex-direction:column;gap:0.6rem">
+          <div class="card card-sm" style="border-left:3px solid #E8B84B">
+            <div style="font-size:0.64rem;font-weight:700;color:#E8B84B;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">① Sidebar Filters</div>
+            <div class="body-text" style="font-size:0.72rem">Category list (10 categories) + Price Range ₹ min/max inputs. Active category highlighted in indigo. "Clear Filters" resets all URL params. Filters are URL-state driven — links are shareable.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #3CB4E5">
+            <div style="font-size:0.64rem;font-weight:700;color:#3CB4E5;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">② Semantic Search</div>
+            <div class="body-text" style="font-size:0.72rem">Query <em>"quiet earphones for open office"</em> → text-embedding-3-small → pgvector cosine. Returns noise-cancelling headphones via vector similarity — exact keywords not required.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #3FD68F">
+            <div style="font-size:0.64rem;font-weight:700;color:#3FD68F;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">③ Sort &amp; Pagination</div>
+            <div class="body-text" style="font-size:0.72rem">5 sort options: Top Rated · Price Low→High · Price High→Low · Newest · Best Discount. 24 items/page. Prev/Next controls. Total result count always shown.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #3CB4E5">
+            <div style="font-size:0.64rem;font-weight:700;color:#3CB4E5;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">④ Product Cards</div>
+            <div class="body-text" style="font-size:0.72rem">Image, BRAND badge, name (2-line clamp), ★ rating + review count, effective price, strikethrough original + discount %. "Add to Cart" or "Out of Stock" state. Click → product detail.</div>
+          </div>
+        </div>
+        <div style="flex:1;position:relative;display:flex;flex-direction:column;min-height:0;overflow:hidden">
+          <div style="background:#fff;border-radius:10px;overflow:hidden;flex:1;min-height:0;box-shadow:0 8px 40px rgba(0,0,0,.55);display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+            <div style="background:#e8e8ed;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <div style="display:flex;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f57"></div><div style="width:10px;height:10px;border-radius:50%;background:#ffbd2e"></div><div style="width:10px;height:10px;border-radius:50%;background:#28ca41"></div></div>
+              <div style="flex:1;background:#fff;border-radius:4px;padding:3px 10px;font-size:8.5px;color:#555;font-family:monospace">localhost:3000/products?q=quiet+earphones+for+open+office</div>
+            </div>
+            <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:0 14px;display:flex;align-items:center;gap:8px;height:40px;flex-shrink:0">
+              <div style="font-weight:800;font-size:12px;color:#5046e5;white-space:nowrap">🛍 ShopAI</div>
+              <div style="flex:1;background:#eef0ff;border-radius:5px;padding:4px 10px;font-size:9px;color:#5046e5;font-weight:500;border:1.5px solid #c7d2fe">🔍 quiet earphones for open office</div>
+              <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;font-size:9px;color:#6b7280"><span>Home</span><span style="color:#5046e5;font-weight:600">Products</span><span>Orders</span><div style="background:#5046e5;color:#fff;border-radius:5px;padding:3px 9px;font-size:9px;font-weight:600">🛒 Cart (2)</div></div>
+            </div>
+            <div style="padding:7px 14px;background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+              <div>
+                <div style="font-size:11px;font-weight:700;color:#111">Results for "quiet earphones for open office"</div>
+                <div style="font-size:7.5px;color:#6b7280;margin-top:1px">34 products · semantic vector search</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="background:#e8f4fe;border:1px solid #bde8ff;border-radius:4px;padding:3px 7px;font-size:7px;color:#0369a1;font-weight:600">⚡ Semantic match</div>
+                <select style="border:1px solid #e5e7eb;border-radius:5px;padding:3px 6px;font-size:8px;color:#374151;background:#fff"><option>Top Rated</option></select>
+              </div>
+            </div>
+            <div style="display:flex;flex:1;overflow:hidden">
+              <div style="width:128px;flex-shrink:0;border-right:1px solid #e5e7eb;padding:10px;background:#fafafa;display:flex;flex-direction:column;gap:12px;overflow:hidden">
+                <div>
+                  <div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:5px">Category</div>
+                  <div style="display:flex;flex-direction:column;gap:2px">
+                    <div style="padding:4px 7px;border-radius:5px;font-size:8px;color:#6b7280">All</div>
+                    <div style="padding:4px 7px;border-radius:5px;font-size:8px;background:rgba(80,70,229,.1);color:#5046e5;font-weight:600">Electronics</div>
+                    <div style="padding:4px 7px;border-radius:5px;font-size:8px;color:#6b7280">Clothing</div>
+                    <div style="padding:4px 7px;border-radius:5px;font-size:8px;color:#6b7280">Books</div>
+                    <div style="padding:4px 7px;border-radius:5px;font-size:8px;color:#6b7280">Home</div>
+                    <div style="padding:4px 7px;border-radius:5px;font-size:8px;color:#6b7280">Sports</div>
+                    <div style="padding:4px 7px;border-radius:5px;font-size:8px;color:#6b7280">Beauty</div>
+                  </div>
+                </div>
+                <div>
+                  <div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#9ca3af;margin-bottom:5px">Price Range (₹)</div>
+                  <div style="display:flex;gap:4px"><div style="flex:1;border:1px solid #e5e7eb;border-radius:4px;padding:3px 5px;font-size:7px;color:#9ca3af;background:#fff">Min</div><div style="flex:1;border:1px solid #e5e7eb;border-radius:4px;padding:3px 5px;font-size:7px;color:#9ca3af;background:#fff">Max</div></div>
+                </div>
+                <div style="border:1px solid #e5e7eb;border-radius:5px;padding:4px;text-align:center;font-size:7px;color:#5046e5;font-weight:600">Clear Filters</div>
+              </div>
+              <div style="flex:1;padding:10px 12px;background:#f8f9fa;overflow:hidden;display:flex;flex-direction:column">
+                <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;flex:1">
+                  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                    <div style="background:#e8f4fe;height:54px;display:flex;align-items:center;justify-content:center;position:relative"><span style="font-size:22px">🎧</span><span style="position:absolute;top:4px;left:4px;background:#f97316;color:#fff;border-radius:3px;padding:1px 4px;font-size:6px;font-weight:700">15% OFF</span></div>
+                    <div style="padding:6px 7px"><div style="font-size:6px;color:#9ca3af;text-transform:uppercase;font-weight:600">SONY</div><div style="font-size:7.5px;font-weight:600;line-height:1.3;margin:2px 0">WH-1000XM5 Noise-Cancelling</div><div style="color:#f97316;font-size:7px">★★★★★ <span style="color:#9ca3af">(2,841)</span></div><div style="font-size:9px;font-weight:700;color:#5046e5;margin:2px 0">₹27,990 <span style="text-decoration:line-through;color:#9ca3af;font-weight:400;font-size:7px">₹32,990</span></div><div style="background:#5046e5;color:#fff;border-radius:4px;padding:3px;text-align:center;font-size:7px;font-weight:600;margin-top:4px">+ Add to Cart</div></div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                    <div style="background:#f0fdf4;height:54px;display:flex;align-items:center;justify-content:center"><span style="font-size:22px">🎧</span></div>
+                    <div style="padding:6px 7px"><div style="font-size:6px;color:#9ca3af;text-transform:uppercase;font-weight:600">JABRA</div><div style="font-size:7.5px;font-weight:600;line-height:1.3;margin:2px 0">Evolve2 65 UC Wireless</div><div style="color:#f97316;font-size:7px">★★★★☆ <span style="color:#9ca3af">(1,204)</span></div><div style="font-size:9px;font-weight:700;color:#5046e5;margin:2px 0">₹19,499</div><div style="background:#5046e5;color:#fff;border-radius:4px;padding:3px;text-align:center;font-size:7px;font-weight:600;margin-top:4px">+ Add to Cart</div></div>
+                  </div>
+                  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+                    <div style="background:#fef3f2;height:54px;display:flex;align-items:center;justify-content:center;position:relative"><span style="font-size:22px">🎧</span><span style="position:absolute;top:4px;left:4px;background:#f97316;color:#fff;border-radius:3px;padding:1px 4px;font-size:6px;font-weight:700">25% OFF</span></div>
+                    <div style="padding:6px 7px"><div style="font-size:6px;color:#9ca3af;text-transform:uppercase;font-weight:600">ANKER</div><div style="font-size:7.5px;font-weight:600;line-height:1.3;margin:2px 0">Soundcore Q45 ANC</div><div style="color:#f97316;font-size:7px">★★★★☆ <span style="color:#9ca3af">(3,570)</span></div><div style="font-size:9px;font-weight:700;color:#5046e5;margin:2px 0">₹4,499 <span style="text-decoration:line-through;color:#9ca3af;font-weight:400;font-size:7px">₹5,999</span></div><div style="background:#5046e5;color:#fff;border-radius:4px;padding:3px;text-align:center;font-size:7px;font-weight:600;margin-top:4px">+ Add to Cart</div></div>
+                  </div>
+                </div>
+                <div style="margin-top:7px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 8px;display:flex;align-items:center;gap:6px;flex-shrink:0">
+                  <div style="font-size:14px">⚡</div>
+                  <div style="font-size:7.5px;color:#92400e"><strong style="color:#78350f">Semantic vector match</strong> — "quiet earphones for open office" matched noise-cancelling headphones via pgvector cosine similarity. No exact keyword overlap in the query was needed.</div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:7px;padding-top:6px;border-top:1px solid #e5e7eb;flex-shrink:0">
+                  <div style="border:1px solid #e5e7eb;border-radius:4px;padding:3px 8px;font-size:8px;color:#9ca3af">← Prev</div>
+                  <div style="font-size:8px;color:#6b7280">Page 1 of 2</div>
+                  <div style="border:1px solid #5046e5;border-radius:4px;padding:3px 8px;font-size:8px;color:#5046e5;font-weight:600">Next →</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 13 · UI — AI CHAT ASSISTANT ════════════════════════════ -->
+    <div class="slide" data-n="13">
+      <div class="eyebrow">Application UI · Screen 3 of 4</div>
+      <div class="slide-title">ShopAI Assistant — Natural Language &amp; Personalised Recommendations</div>
+      <div class="slide-body" style="flex-direction:row;gap:1.25rem">
+        <div style="width:27%;display:flex;flex-direction:column;gap:0.6rem">
+          <div class="card card-sm" style="border-left:3px solid #3CB4E5">
+            <div style="font-size:0.64rem;font-weight:700;color:#3CB4E5;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">① Natural Language Query</div>
+            <div class="body-text" style="font-size:0.72rem">User types free-form text. GPT parses intent → extracts category, brand, max_price, and keywords. No structured form. Session ID maintained across turns via session_service.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #E8B84B">
+            <div style="font-size:0.64rem;font-weight:700;color:#E8B84B;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">② RAG Pipeline Response</div>
+            <div class="body-text" style="font-size:0.72rem">7-step pipeline: NL parse → embed 1,536-dim (120ms) → pgvector top-8 (94ms) → purchase history context → GPT generate (1,050ms). P95 = 2.28s. Grounding 4.7/5.0.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #3FD68F">
+            <div style="font-size:0.64rem;font-weight:700;color:#3FD68F;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">③ Purchase Personalisation</div>
+            <div class="body-text" style="font-size:0.72rem">user_id → last 5 orders → cart_activity JSONB → product names injected as "USER PURCHASE HISTORY" in GPT prompt. Bot cites preferences: "Based on your recent purchases…"</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #3CB4E5">
+            <div style="font-size:0.64rem;font-weight:700;color:#3CB4E5;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">④ Inline Product Pills</div>
+            <div class="body-text" style="font-size:0.72rem">Up to 4 product cards rendered inline below bot responses. Each pill: product image, name (40-char truncated), effective INR price. Click → navigates to product detail page.</div>
+          </div>
+        </div>
+        <div style="flex:1;position:relative;display:flex;flex-direction:column;min-height:0;overflow:hidden">
+          <div style="background:#fff;border-radius:10px;overflow:hidden;flex:1;min-height:0;box-shadow:0 8px 40px rgba(0,0,0,.55);display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;position:relative">
+            <div style="background:#e8e8ed;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <div style="display:flex;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f57"></div><div style="width:10px;height:10px;border-radius:50%;background:#ffbd2e"></div><div style="width:10px;height:10px;border-radius:50%;background:#28ca41"></div></div>
+              <div style="flex:1;background:#fff;border-radius:4px;padding:3px 10px;font-size:9px;color:#555;font-family:monospace">localhost:3000/products</div>
+            </div>
+            <div style="flex:1;background:#f8f9fa;position:relative;overflow:hidden">
+              <div style="filter:blur(1.5px);opacity:.3;padding:8px 14px">
+                <div style="background:#fff;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;gap:8px;height:36px;margin:-8px -14px 8px -14px;padding:0 14px"><div style="font-weight:800;font-size:11px;color:#5046e5">🛍 ShopAI</div><div style="flex:1;background:#f3f4f6;border-radius:5px;padding:3px 8px;font-size:8px;color:#9ca3af">🔍 Search...</div></div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:4px">
+                  <div style="background:#e8f4fe;border-radius:6px;height:78px"></div>
+                  <div style="background:#e8fee8;border-radius:6px;height:78px"></div>
+                  <div style="background:#fff4e8;border-radius:6px;height:78px"></div>
+                  <div style="background:#f4e8ff;border-radius:6px;height:78px"></div>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px">
+                  <div style="background:#f0f9ff;border-radius:6px;height:78px"></div>
+                  <div style="background:#fef3c7;border-radius:6px;height:78px"></div>
+                  <div style="background:#fce7f3;border-radius:6px;height:78px"></div>
+                  <div style="background:#ecfdf5;border-radius:6px;height:78px"></div>
+                </div>
+              </div>
+              <div style="position:absolute;inset:0;background:rgba(0,0,0,.32)"></div>
+              <div style="position:absolute;bottom:32px;right:8px;width:268px;background:#fff;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.28);border:1px solid #e5e7eb;display:flex;flex-direction:column;overflow:hidden">
+                <div style="background:#5046e5;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;color:#fff;flex-shrink:0">
+                  <div style="display:flex;align-items:center;gap:8px"><div style="font-size:16px">🤖</div><div><div style="font-size:8.5px;font-weight:700">ShopAI Assistant</div><div style="font-size:6.5px;opacity:.8">● Online</div></div></div>
+                  <div style="background:rgba(255,255,255,.2);border-radius:4px;padding:2px 7px;font-size:8px;cursor:pointer">✕</div>
+                </div>
+                <div style="flex:1;padding:9px 10px;display:flex;flex-direction:column;gap:6px;background:#f8f9fa;overflow:hidden">
+                  <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;border-bottom-left-radius:2px;padding:7px 9px;font-size:7.5px;color:#374151;max-width:90%;line-height:1.4">Hi! I'm your AI shopping assistant. Ask me anything — find products, compare options, or get personalised recommendations.</div>
+                  <div style="background:#5046e5;color:#fff;border-radius:10px;border-bottom-right-radius:2px;padding:7px 9px;font-size:7.5px;max-width:88%;align-self:flex-end;line-height:1.4">I need wireless earphones for running under ₹2000</div>
+                  <div style="display:flex;flex-direction:column;gap:5px;max-width:95%">
+                    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;border-bottom-left-radius:2px;padding:7px 9px;font-size:7.5px;color:#374151;line-height:1.4">Based on your recent purchases (fitness tracker, running shoes), you likely want something sweat-resistant! Best picks under ₹2,000:</div>
+                    <div style="display:flex;flex-direction:column;gap:4px">
+                      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:5px 7px;display:flex;align-items:center;gap:6px;cursor:pointer">
+                        <div style="width:30px;height:30px;border-radius:5px;background:#e8f4fe;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🎧</div>
+                        <div><div style="font-size:7px;font-weight:600;line-height:1.3">boAt Rockerz 255 Pro+ Sport</div><div style="font-size:7.5px;font-weight:700;color:#5046e5">₹1,299</div></div>
+                      </div>
+                      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:5px 7px;display:flex;align-items:center;gap:6px;cursor:pointer">
+                        <div style="width:30px;height:30px;border-radius:5px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🎧</div>
+                        <div><div style="font-size:7px;font-weight:600;line-height:1.3">JBL Endurance Run 2 Wired</div><div style="font-size:7.5px;font-weight:700;color:#5046e5">₹1,799</div></div>
+                      </div>
+                      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:5px 7px;display:flex;align-items:center;gap:6px;cursor:pointer">
+                        <div style="width:30px;height:30px;border-radius:5px;background:#fef3f2;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🎧</div>
+                        <div><div style="font-size:7px;font-weight:600;line-height:1.3">Anker Soundcore Sport X10</div><div style="font-size:7.5px;font-weight:700;color:#5046e5">₹1,999</div></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style="padding:6px 8px;border-top:1px solid #e5e7eb;display:flex;gap:5px;background:#fff;flex-shrink:0">
+                  <div style="flex:1;border:1.5px solid #e5e7eb;border-radius:6px;padding:5px 8px;font-size:8px;color:#9ca3af">Ask me anything…</div>
+                  <div style="background:#5046e5;color:#fff;border-radius:6px;padding:4px 9px;font-size:9px;font-weight:700">↑</div>
+                </div>
+              </div>
+              <div style="position:absolute;bottom:4px;right:8px;background:#5046e5;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 4px 12px rgba(80,70,229,.7)">✕</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 14 · UI — PRODUCT DETAIL & CART ════════════════════════ -->
+    <div class="slide" data-n="14">
+      <div class="eyebrow">Application UI · Screen 4 of 4</div>
+      <div class="slide-title">Product Detail, Cart Drawer &amp; Checkout Flow</div>
+      <div class="slide-body" style="flex-direction:row;gap:1.25rem">
+        <div style="width:27%;display:flex;flex-direction:column;gap:0.6rem">
+          <div class="card card-sm" style="border-left:3px solid #3CB4E5">
+            <div style="font-size:0.64rem;font-weight:700;color:#3CB4E5;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">① Product Detail Page</div>
+            <div class="body-text" style="font-size:0.72rem">Breadcrumb nav → brand + category badges → title → star rating (avg + count) → price block (effective + original + % discount + savings) → in-stock status → description + tags.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #E8B84B">
+            <div style="font-size:0.64rem;font-weight:700;color:#E8B84B;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">② Cart Drawer</div>
+            <div class="body-text" style="font-size:0.72rem">Slide-in panel (right, 400px, blurred overlay). Items: thumbnail, name, unit price, qty − / + controls, Remove. Footer: subtotal count + "Proceed to Checkout →" orange CTA.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #3FD68F">
+            <div style="font-size:0.64rem;font-weight:700;color:#3FD68F;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">③ Add to Cart vs Buy Now</div>
+            <div class="body-text" style="font-size:0.72rem">"Add to Cart" (outline btn) → cart context + toast notification. "Buy Now" (orange accent) → add + navigate directly to /checkout. Both disabled if out_of_stock = false.</div>
+          </div>
+          <div class="card card-sm" style="border-left:3px solid #3CB4E5">
+            <div style="font-size:0.64rem;font-weight:700;color:#3CB4E5;margin-bottom:0.25rem;text-transform:uppercase;letter-spacing:.06em">④ Trust &amp; Checkout</div>
+            <div class="body-text" style="font-size:0.72rem">🚚 Free delivery ₹500+ · ↩ 7-day returns · ✓ Secure payments. Checkout posts to checkout_service:8003. Orders tracked in real-time via order_management:8004.</div>
+          </div>
+        </div>
+        <div style="flex:1;position:relative;display:flex;flex-direction:column;min-height:0;overflow:hidden">
+          <div style="background:#fff;border-radius:10px;overflow:hidden;flex:1;min-height:0;box-shadow:0 8px 40px rgba(0,0,0,.55);display:flex;flex-direction:column;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;position:relative">
+            <div style="background:#e8e8ed;padding:7px 12px;display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <div style="display:flex;gap:4px"><div style="width:10px;height:10px;border-radius:50%;background:#ff5f57"></div><div style="width:10px;height:10px;border-radius:50%;background:#ffbd2e"></div><div style="width:10px;height:10px;border-radius:50%;background:#28ca41"></div></div>
+              <div style="flex:1;background:#fff;border-radius:4px;padding:3px 10px;font-size:9px;color:#555;font-family:monospace">localhost:3000/products/p-00247</div>
+            </div>
+            <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:0 14px;display:flex;align-items:center;gap:8px;height:38px;flex-shrink:0">
+              <div style="font-weight:800;font-size:12px;color:#5046e5;white-space:nowrap">🛍 ShopAI</div>
+              <div style="flex:1;background:#f3f4f6;border-radius:5px;padding:3px 10px;font-size:9px;color:#9ca3af">🔍 Search products...</div>
+              <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;font-size:9px;color:#6b7280"><span>Home</span><span style="color:#5046e5;font-weight:600">Products</span><span>Orders</span><div style="background:#5046e5;color:#fff;border-radius:5px;padding:3px 9px;font-size:9px;font-weight:600">🛒 Cart <span style="background:rgba(255,255,255,.25);border-radius:8px;padding:0 4px;font-size:8px">2</span></div></div>
+            </div>
+            <div style="flex:1;padding:10px 14px;overflow:hidden;filter:brightness(.7) blur(.5px)">
+              <div style="font-size:7px;color:#9ca3af;margin-bottom:7px">Home / <span style="color:#5046e5">Electronics</span> / Sony WH-1000XM5</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div style="background:#e8f4fe;border-radius:8px;height:136px;display:flex;align-items:center;justify-content:center;position:relative;border:1px solid #e5e7eb"><span style="font-size:52px">🎧</span><span style="position:absolute;top:8px;left:8px;background:#f97316;color:#fff;border-radius:5px;padding:2px 6px;font-size:7px;font-weight:700">15% OFF</span></div>
+                <div>
+                  <div style="display:flex;gap:5px;margin-bottom:5px"><div style="background:rgba(80,70,229,.1);color:#5046e5;border-radius:4px;padding:2px 6px;font-size:7px;font-weight:600">SONY</div><div style="background:rgba(249,115,22,.1);color:#f97316;border-radius:4px;padding:2px 6px;font-size:7px;font-weight:600">Electronics</div></div>
+                  <div style="font-size:11px;font-weight:700;line-height:1.3;margin-bottom:4px">Sony WH-1000XM5 Wireless Noise Cancelling Headphones</div>
+                  <div style="display:flex;align-items:center;gap:5px;margin-bottom:5px"><div style="color:#f97316;font-size:9px">★★★★★</div><div style="font-size:7.5px;color:#9ca3af">4.8 (2,841 reviews)</div></div>
+                  <div style="background:linear-gradient(135deg,rgba(80,70,229,.05),rgba(249,115,22,.05));border-radius:6px;padding:7px 9px;margin-bottom:5px">
+                    <div style="font-size:14px;font-weight:800;color:#111">₹27,990</div>
+                    <div style="display:flex;gap:6px;font-size:7.5px;margin-top:2px"><span style="text-decoration:line-through;color:#9ca3af">₹32,990</span><span style="color:#f97316;font-weight:600">Save ₹5,000</span></div>
+                    <div style="font-size:6.5px;color:#9ca3af;margin-top:1px">Inclusive of all taxes</div>
+                  </div>
+                  <div style="color:#16a34a;font-size:7.5px;font-weight:600;margin-bottom:5px">✓ In Stock</div>
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:5px"><span style="font-size:8px">Qty:</span><div style="border:1px solid #e5e7eb;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">−</div><span style="font-size:9px;font-weight:700;min-width:14px;text-align:center">1</span><div style="border:1px solid #e5e7eb;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700">+</div></div>
+                  <div style="display:flex;gap:5px;margin-bottom:5px"><div style="flex:1;border:1.5px solid #5046e5;color:#5046e5;border-radius:5px;padding:5px;text-align:center;font-size:8px;font-weight:600">Add to Cart</div><div style="flex:1;background:#f97316;color:#fff;border-radius:5px;padding:5px;text-align:center;font-size:8px;font-weight:600">Buy Now</div></div>
+                  <div style="display:flex;flex-direction:column;gap:2px"><div style="font-size:6.5px;color:#9ca3af">🚚 Free delivery on orders ₹500+</div><div style="font-size:6.5px;color:#9ca3af">↩ 7-day easy returns</div><div style="font-size:6.5px;color:#9ca3af">✓ Secure payments</div></div>
+                </div>
+              </div>
+            </div>
+            <div style="position:absolute;inset:0;background:rgba(0,0,0,.38);backdrop-filter:blur(1px)"></div>
+            <div style="position:absolute;top:0;right:0;bottom:0;width:204px;background:#fff;box-shadow:-8px 0 24px rgba(0,0,0,.18);display:flex;flex-direction:column;z-index:2">
+              <div style="padding:10px 12px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+                <div style="font-size:10px;font-weight:700;display:flex;align-items:center;gap:5px">Cart <span style="background:#5046e5;color:#fff;border-radius:999px;padding:1px 5px;font-size:7.5px">2</span></div>
+                <div style="font-size:10px;color:#9ca3af;cursor:pointer">✕</div>
+              </div>
+              <div style="flex:1;padding:8px 10px;display:flex;flex-direction:column;gap:8px;overflow:hidden">
+                <div style="display:flex;gap:7px;padding-bottom:7px;border-bottom:1px solid #f3f4f6">
+                  <div style="width:38px;height:38px;border-radius:6px;background:#e8f4fe;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">🎧</div>
+                  <div style="flex:1"><div style="font-size:7px;font-weight:500;line-height:1.3;margin-bottom:2px">Sony WH-1000XM5 Headphones</div><div style="font-size:8px;font-weight:700;color:#5046e5">₹27,990</div><div style="display:flex;align-items:center;gap:4px;margin-top:3px"><div style="border:1px solid #e5e7eb;border-radius:3px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:9px">−</div><span style="font-size:8px;font-weight:600">1</span><div style="border:1px solid #e5e7eb;border-radius:3px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:9px">+</div><span style="font-size:7px;color:#ef4444;margin-left:2px">Remove</span></div></div>
+                </div>
+                <div style="display:flex;gap:7px;padding-bottom:7px;border-bottom:1px solid #f3f4f6">
+                  <div style="width:38px;height:38px;border-radius:6px;background:#fff4e8;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0">👟</div>
+                  <div style="flex:1"><div style="font-size:7px;font-weight:500;line-height:1.3;margin-bottom:2px">Nike Air Zoom Pegasus 40</div><div style="font-size:8px;font-weight:700;color:#5046e5">₹8,495</div><div style="display:flex;align-items:center;gap:4px;margin-top:3px"><div style="border:1px solid #e5e7eb;border-radius:3px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:9px">−</div><span style="font-size:8px;font-weight:600">1</span><div style="border:1px solid #e5e7eb;border-radius:3px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:9px">+</div><span style="font-size:7px;color:#ef4444;margin-left:2px">Remove</span></div></div>
+                </div>
+              </div>
+              <div style="padding:8px 10px;border-top:1px solid #e5e7eb;flex-shrink:0">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px"><div style="font-size:8.5px;color:#374151">Subtotal (2 items)</div><div style="font-size:9px;font-weight:700">₹36,485</div></div>
+                <div style="background:#f97316;color:#fff;border-radius:6px;padding:7px;text-align:center;font-size:8.5px;font-weight:700">Proceed to Checkout →</div>
+              </div>
+            </div>
+          </div>
+          <div style="position:absolute;bottom:34px;right:8px;background:#5046e5;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 4px 14px rgba(80,70,229,.7);z-index:5">💬</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ SLIDE 15 · LIVE DEMO ══════════════════════════════════════ -->
+    <div class="slide" data-n="15">
       <div class="eyebrow">Live Demo</div>
       <div class="slide-title">6 flows — ~10 minutes</div>
       <div class="slide-body">
@@ -902,8 +1238,8 @@ html, body {
       </div>
     </div>
 
-    <!-- ══ SLIDE 12 · SUMMARY & Q&A ═════════════════════════════════ -->
-    <div class="slide" data-n="12">
+    <!-- ══ SLIDE 16 · SUMMARY & Q&A ═════════════════════════════════ -->
+    <div class="slide" data-n="16">
       <div class="eyebrow">Summary</div>
       <div class="slide-title">What worked, what to improve, what comes next</div>
       <div class="slide-body">

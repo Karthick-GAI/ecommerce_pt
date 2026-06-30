@@ -1,35 +1,131 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { productsApi } from '../api/index.js'
+import { recommendationsApi } from '../api/index.js'
+import { useAuth } from '../store/AuthContext.jsx'
 import ProductCard from '../components/ProductCard.jsx'
 
 const CATEGORIES = [
-  { label: 'Electronics',  icon: '📱', slug: 'Electronics' },
-  { label: 'Clothing',     icon: '👕', slug: 'Clothing' },
-  { label: 'Books',        icon: '📚', slug: 'Books' },
-  { label: 'Home & Living',icon: '🏠', slug: 'Home' },
-  { label: 'Sports',       icon: '⚽', slug: 'Sports' },
-  { label: 'Beauty',       icon: '💄', slug: 'Beauty' },
-  { label: 'Automotive',   icon: '🚗', slug: 'Automotive' },
-  { label: 'Toys',         icon: '🧸', slug: 'Toys' },
+  { label: 'Electronics',   icon: '📱', slug: 'Electronics' },
+  { label: 'Clothing',      icon: '👕', slug: 'Clothing' },
+  { label: 'Books',         icon: '📚', slug: 'Books' },
+  { label: 'Home & Living', icon: '🏠', slug: 'Home' },
+  { label: 'Sports',        icon: '⚽', slug: 'Sports' },
+  { label: 'Beauty',        icon: '💄', slug: 'Beauty' },
+  { label: 'Automotive',    icon: '🚗', slug: 'Automotive' },
+  { label: 'Toys',          icon: '🧸', slug: 'Toys' },
 ]
 
-export default function Home() {
-  const [featured, setFeatured] = useState([])
-  const [newArrivals, setNewArrivals] = useState([])
-  const [loading, setLoading] = useState(true)
+// Converts recommendation engine item → ProductCard prop shape
+function normalize(item) {
+  const disc = (item.discount_pct || 0) / 100
+  return {
+    id:             item.product_id,
+    name:           item.name,
+    brand:          item.brand || '',
+    category:       item.category || '',
+    price:          item.price || 0,
+    effective_price: item.price * (1 - disc),
+    discount_pct:   item.discount_pct || 0,
+    rating_avg:     item.rating_avg || 0,
+    rating_count:   0,
+    in_stock:       (item.stock ?? 1) > 0,
+    primary_image:  null,
+  }
+}
+
+function RecSection({ title, badge, items, viewAllPath }) {
   const navigate = useNavigate()
+  if (!items || items.length === 0) return null
+  return (
+    <section style={s.section}>
+      <div className="container">
+        <div style={s.sectionHeader}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h2 style={s.sectionTitle}>{title}</h2>
+            {badge && <span style={s.badge}>{badge}</span>}
+          </div>
+          {viewAllPath && (
+            <button className="btn btn-ghost btn-sm" onClick={() => navigate(viewAllPath)}>
+              View all →
+            </button>
+          )}
+        </div>
+        <div className="product-grid">
+          {items.map(p => <ProductCard key={p.id} product={p} />)}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export default function Home() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
+  const [sections, setSections] = useState([])   // [{title, badge, items}]
+  const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
-    Promise.all([
-      productsApi.list({ limit: 8, sort_by: 'rating', order: 'desc' }),
-      productsApi.list({ limit: 8, sort_by: 'created_at', order: 'desc' }),
-    ]).then(([feat, news]) => {
-      setFeatured(feat.data.results || [])
-      setNewArrivals(news.data.results || [])
-    }).catch(console.error)
-      .finally(() => setLoading(false))
-  }, [])
+    let cancelled = false
+    setLoading(true)
+
+    async function load() {
+      // If user is logged in, attempt personalised homepage feed first
+      if (user?.id) {
+        try {
+          const res = await recommendationsApi.homepage(user.id)
+          const personalSections = (res.data.sections || [])
+            .filter(sec => (sec.products || []).length > 0)
+            .map(sec => ({
+              title: sec.title,
+              badge: 'For You',
+              items: (sec.products || []).slice(0, 8).map(normalize),
+            }))
+          if (!cancelled && personalSections.length > 0) {
+            setSections(personalSections)
+            setLoading(false)
+            return
+          }
+        } catch { /* fall through to global */ }
+      }
+
+      // Global discovery — works for everyone
+      try {
+        const [trendRes, dealRes, arrivalRes] = await Promise.all([
+          recommendationsApi.trending({ days: 30, limit: 8 }),
+          recommendationsApi.deals({ limit: 8 }),
+          recommendationsApi.newArrivals({ limit: 8 }),
+        ])
+        if (cancelled) return
+        setSections([
+          {
+            title: 'Trending Now',
+            badge: 'Hot',
+            items: (trendRes.data.trending || []).map(normalize),
+            viewAllPath: '/products',
+          },
+          {
+            title: 'Top Deals',
+            badge: 'Sale',
+            items: (dealRes.data.deals || []).map(normalize),
+            viewAllPath: '/products',
+          },
+          {
+            title: 'New Arrivals',
+            badge: null,
+            items: (arrivalRes.data.products || []).map(normalize),
+            viewAllPath: '/products',
+          },
+        ])
+      } catch {
+        setSections([])
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [user?.id])
 
   return (
     <div>
@@ -43,7 +139,7 @@ export default function Home() {
               <span style={styles.heroAccent}>actually</span> want
             </h1>
             <p style={styles.heroSub}>
-              Smart search, personalised picks, and an AI assistant that helps you<br />
+              Smart search, personalised picks, and an AI assistant that helps you
               find exactly what you're looking for — in seconds.
             </p>
             <div style={styles.heroCtas}>
@@ -84,58 +180,36 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Featured */}
-      <section style={styles.section}>
-        <div className="container">
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>Top Rated Products</h2>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/products?sort_by=rating')}>
-              View all →
-            </button>
+      {/* Recommendation sections */}
+      {loading ? (
+        <div className="spinner-wrap"><div className="spinner" /></div>
+      ) : (
+        sections.map((sec, i) => (
+          <div key={i} style={i % 2 === 1 ? { background: 'var(--surface)' } : {}}>
+            <RecSection
+              title={sec.title}
+              badge={sec.badge}
+              items={sec.items}
+              viewAllPath={sec.viewAllPath}
+            />
           </div>
-          {loading ? (
-            <div className="spinner-wrap"><div className="spinner" /></div>
-          ) : (
-            <div className="product-grid">
-              {featured.map(p => <ProductCard key={p.id} product={p} />)}
-            </div>
-          )}
-        </div>
-      </section>
+        ))
+      )}
 
-      {/* New Arrivals */}
-      <section style={{ ...styles.section, background: 'var(--surface)', padding: '40px 0' }}>
-        <div className="container">
-          <div style={styles.sectionHeader}>
-            <h2 style={styles.sectionTitle}>New Arrivals</h2>
-            <button className="btn btn-ghost btn-sm" onClick={() => navigate('/products')}>
-              View all →
-            </button>
-          </div>
-          {loading ? (
-            <div className="spinner-wrap"><div className="spinner" /></div>
-          ) : (
-            <div className="product-grid">
-              {newArrivals.map(p => <ProductCard key={p.id} product={p} />)}
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* AI Feature banner */}
+      {/* AI banner */}
       <section style={styles.aiSection}>
         <div className="container" style={styles.aiInner}>
           <div style={{ fontSize: '3rem' }}>🤖</div>
           <div>
             <h2 style={{ marginBottom: 8 }}>Meet your AI Shopping Assistant</h2>
-            <p style={{ color: 'var(--muted)', maxWidth: 480 }}>
+            <p style={{ color: 'rgba(255,255,255,.75)', maxWidth: 480 }}>
               Ask natural questions like "show me running shoes under ₹3000" or
               "what's a good gift for a 10-year-old?" — the chat widget is always available.
             </p>
           </div>
           <button
             className="btn btn-primary btn-lg"
-            style={{ flexShrink: 0 }}
+            style={{ flexShrink: 0, background: '#fff', color: 'var(--primary)' }}
             onClick={() => document.querySelector('[aria-label="Open chat assistant"]')?.click()}
           >
             Try it now →
@@ -146,14 +220,23 @@ export default function Home() {
   )
 }
 
+const s = {
+  section: { padding: '48px 0' },
+  sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
+  sectionTitle: { fontSize: '1.4rem', fontWeight: 700 },
+  badge: {
+    fontSize: '0.7rem', fontWeight: 800, padding: '3px 9px',
+    borderRadius: 20, background: 'var(--accent)', color: '#fff',
+    letterSpacing: '.04em', textTransform: 'uppercase',
+  },
+}
+
 const styles = {
   hero: {
     background: 'linear-gradient(135deg, #EEF0FF 0%, #F5F4FF 50%, #FFF4F0 100%)',
     padding: '60px 0',
   },
-  heroInner: {
-    display: 'flex', alignItems: 'center', gap: 40, flexWrap: 'wrap',
-  },
+  heroInner: { display: 'flex', alignItems: 'center', gap: 40, flexWrap: 'wrap' },
   heroText: { flex: 1, minWidth: 300 },
   heroEyebrow: {
     fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary)',
@@ -169,17 +252,11 @@ const styles = {
   heroVisual: { flex: 0, display: 'flex', justifyContent: 'center' },
   heroCard: {
     background: '#fff', borderRadius: 20, padding: '32px 40px',
-    boxShadow: 'var(--shadow-lg)', textAlign: 'center',
-    border: '1px solid var(--border)',
+    boxShadow: 'var(--shadow-lg)', textAlign: 'center', border: '1px solid var(--border)',
   },
   section: { padding: '48px 0' },
-  sectionHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  sectionTitle: { fontSize: '1.4rem', fontWeight: 700 },
-  catGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
-    gap: 12,
-  },
+  sectionTitle: { fontSize: '1.4rem', fontWeight: 700, marginBottom: 20 },
+  catGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 },
   catCard: {
     background: 'var(--surface)', border: '1.5px solid var(--border)',
     borderRadius: 'var(--radius-lg)', padding: '20px 12px',
@@ -190,10 +267,7 @@ const styles = {
   catLabel: { fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' },
   aiSection: {
     background: 'linear-gradient(135deg, var(--primary) 0%, #3D33D4 100%)',
-    padding: '40px 0',
-    color: '#fff',
+    padding: '40px 0', color: '#fff',
   },
-  aiInner: {
-    display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap',
-  },
+  aiInner: { display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' },
 }

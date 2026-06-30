@@ -1,8 +1,25 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { productsApi } from '../api/index.js'
+import { productsApi, recommendationsApi } from '../api/index.js'
 import { useCart } from '../store/CartContext.jsx'
 import { useToast } from '../store/ToastContext.jsx'
+import ProductCard from '../components/ProductCard.jsx'
+
+function normalizeRec(item) {
+  const disc = (item.discount_pct || 0) / 100
+  return {
+    id:              item.product_id,
+    name:            item.name,
+    brand:           item.brand || '',
+    price:           item.price || 0,
+    effective_price: item.price * (1 - disc),
+    discount_pct:    item.discount_pct || 0,
+    rating_avg:      item.rating_avg || 0,
+    rating_count:    0,
+    in_stock:        (item.stock ?? 1) > 0,
+    primary_image:   null,
+  }
+}
 
 export default function ProductDetail() {
   const { id } = useParams()
@@ -13,16 +30,30 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true)
   const [qty, setQty] = useState(1)
   const [adding, setAdding] = useState(false)
+  const [similar, setSimilar] = useState([])
+  const [boughtTogether, setBoughtTogether] = useState([])
 
   useEffect(() => {
     productsApi.get(id).then(r => setProduct(r.data)).catch(() => navigate('/products')).finally(() => setLoading(false))
+    // Load recommendation sections in parallel, silently ignore failures
+    recommendationsApi.similar(id, { strategy: 'both', limit: 6 })
+      .then(r => setSimilar((r.data.similar || []).map(normalizeRec)))
+      .catch(() => {})
+    recommendationsApi.boughtTogether(id, { limit: 6 })
+      .then(r => setBoughtTogether((r.data.bought_together || []).map(normalizeRec)))
+      .catch(() => {})
   }, [id])
 
   async function handleAdd() {
     setAdding(true)
-    await addItem(product, qty)
-    toast(`${product.name.slice(0, 30)}… added to cart`, 'success')
-    setAdding(false)
+    try {
+      await addItem(product, qty)
+      toast(`${product.name.slice(0, 30)}… added to cart`, 'success')
+    } catch {
+      toast('Could not add item — please try again', 'error')
+    } finally {
+      setAdding(false)
+    }
   }
 
   async function handleBuyNow() {
@@ -172,6 +203,29 @@ export default function ProductDetail() {
           </div>
         </div>
       </div>
+
+      {/* Similar Products */}
+      {similar.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 40, marginTop: 8 }}>
+          <h2 style={{ marginBottom: 20 }}>Similar Products</h2>
+          <div className="product-grid">
+            {similar.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        </div>
+      )}
+
+      {/* Bought Together */}
+      {boughtTogether.length > 0 && (
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 40, marginTop: 32 }}>
+          <h2 style={{ marginBottom: 4 }}>Frequently Bought Together</h2>
+          <p style={{ color: 'var(--muted)', fontSize: '0.875rem', marginBottom: 20 }}>
+            Customers who bought this also purchased
+          </p>
+          <div className="product-grid">
+            {boughtTogether.map(p => <ProductCard key={p.id} product={p} />)}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

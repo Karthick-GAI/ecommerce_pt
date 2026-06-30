@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../store/CartContext.jsx'
 import { useAuth } from '../store/AuthContext.jsx'
 import { useToast } from '../store/ToastContext.jsx'
-import { checkoutsApi } from '../api/index.js'
+import { checkoutsApi, shippingApi } from '../api/index.js'
 
 const STEPS = ['Delivery', 'Review', 'Payment']
 
@@ -22,6 +22,18 @@ export default function Checkout() {
     email: user?.email || '',
     line1: '', city: '', state: '', pincode: '',
   })
+  const [rates, setRates]               = useState([])
+  const [ratesLoading, setRatesLoading] = useState(false)
+  const [selectedCourier, setSelectedCourier] = useState(null)
+
+  useEffect(() => {
+    if (address.pincode.length !== 6) { setRates([]); setSelectedCourier(null); return }
+    setRatesLoading(true)
+    shippingApi.rates({ origin_pincode: '400069', destination_pincode: address.pincode, weight_kg: 1.0, cod: false })
+      .then(r => { setRates(r.data.rates || []); })
+      .catch(() => setRates([]))
+      .finally(() => setRatesLoading(false))
+  }, [address.pincode])
 
   const shipping = subtotal > 500 ? 0 : 50
   const gst = Math.round(subtotal * 0.18)
@@ -32,39 +44,54 @@ export default function Checkout() {
   async function placeOrder() {
     setLoading(true)
     try {
-      // Build checkout payload
-      const cartItems = items.map(i => ({
-        product_id: i.product_id,
-        product_name: i.product_name,
-        quantity: i.quantity,
-        unit_price: i.unit_price,
-      }))
+      // Step 1: Create a checkout cart in the checkout service
+      const cartRes = await checkoutsApi.createCart()
+      const cartId = cartRes.data.cart_id
 
-      const res = await checkoutsApi.place({
-        customer_id: user?.id || 'guest',
-        session_id: sessionId,
-        items: cartItems,
-        shipping_name: address.name,
-        shipping_phone: address.phone,
-        shipping_email: address.email,
-        shipping_address: address.line1,
-        shipping_city: address.city,
-        shipping_state: address.state,
-        shipping_pincode: address.pincode,
-        payment_method: 'razorpay',
-        subtotal,
-        shipping_charge: shipping,
-        tax: gst,
-        total,
+      // Step 2: Transfer session cart items into the checkout cart
+      for (const item of items) {
+        await checkoutsApi.addItem(cartId, {
+          product_id: item.product_id,
+          quantity: item.quantity,
+        })
+      }
+
+      // Step 3: Initiate checkout — creates a pending order
+      const orderRes = await checkoutsApi.place({
+        cart_id: cartId,
+        customer_id: user?.id || null,
+        shipping: {
+          name: address.name,
+          phone: address.phone,
+          address_line: address.line1,
+          city: address.city,
+          state: address.state,
+          pincode: address.pincode,
+        },
+      })
+      const orderId = orderRes.data.order_id
+
+      // Step 4: Process payment (simulated Razorpay via test card)
+      const payRes = await checkoutsApi.pay(orderId, {
+        method: 'card',
+        card_number: '4242424242424242',
+        card_holder: address.name || 'CUSTOMER',
+        expiry_month: '12',
+        expiry_year: '2026',
+        cvv: '123',
       })
 
-      setOrderId(res.data.order_id || res.data.id)
+      if (payRes.data.payment_status !== 'success') {
+        throw new Error(payRes.data.message || 'Payment failed')
+      }
+
+      setOrderId(orderId)
       await clearCart()
       setStep(3)
       toast('Order placed successfully!', 'success')
     } catch (err) {
       const detail = err.response?.data?.detail
-      toast(typeof detail === 'string' ? detail : 'Could not place order. Please retry.', 'error')
+      toast(typeof detail === 'string' ? detail : (err.message || 'Could not place order. Please retry.'), 'error')
     } finally {
       setLoading(false)
     }
@@ -172,6 +199,44 @@ export default function Checkout() {
                       pattern="[0-9]{6}" maxLength={6} required />
                   </div>
                 </div>
+
+                {/* Shipping rates — auto-loads when pincode is complete */}
+                {ratesLoading && (
+                  <div style={{ marginTop: 14, color: 'var(--muted)', fontSize: '0.82rem' }}>
+                    Fetching courier rates…
+                  </div>
+                )}
+                {rates.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <p style={{ fontWeight: 700, fontSize: '0.82rem', marginBottom: 8, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: '.05em' }}>
+                      🚚 Available Couriers
+                    </p>
+                    <div style={styles.courierGrid}>
+                      {rates.map(r => {
+                        const picked = selectedCourier?.courier_name === r.courier_name
+                        return (
+                          <div key={r.courier_name} onClick={() => setSelectedCourier(r)}
+                            style={{ ...styles.courierCard, border: picked ? '2px solid var(--primary)' : '1.5px solid var(--border)', background: picked ? 'rgba(80,70,229,.04)' : 'var(--surface)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                              <span style={{ fontWeight: 700, fontSize: '0.85rem' }}>{r.courier_name}</span>
+                              <span style={{ fontWeight: 800, fontSize: '0.9rem', color: 'var(--primary)' }}>₹{Math.round(r.rate_amount)}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                              <span style={{ fontSize: '0.72rem', color: 'var(--muted)' }}>{r.estimated_days} days</span>
+                              <span style={{ fontSize: '0.65rem', fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                                background: r.service_type === 'express' ? '#DBEAFE' : '#F3F4F6',
+                                color: r.service_type === 'express' ? '#1D4ED8' : '#6B7280' }}>
+                                {r.service_type}
+                              </span>
+                            </div>
+                            {picked && <div style={{ fontSize: '0.7rem', color: 'var(--primary)', fontWeight: 700, marginTop: 4 }}>✓ Selected</div>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <button
                   className="btn btn-primary btn-lg"
                   style={{ marginTop: 20 }}
@@ -208,6 +273,17 @@ export default function Checkout() {
                     {address.line1}, {address.city}, {address.state} — {address.pincode}
                   </p>
                 </div>
+                {selectedCourier && (
+                  <div style={{ ...styles.addressBox, marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <strong>🚚 {selectedCourier.courier_name}</strong>
+                      <p style={{ color: 'var(--muted)', fontSize: '0.8rem', marginTop: 2 }}>
+                        {selectedCourier.service_type} · {selectedCourier.estimated_days} days
+                      </p>
+                    </div>
+                    <span style={{ fontWeight: 800, color: 'var(--primary)' }}>₹{Math.round(selectedCourier.rate_amount)}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', gap: 12, marginTop: 20 }}>
                   <button className="btn btn-ghost" onClick={() => setStep(0)}>← Back</button>
                   <button className="btn btn-primary btn-lg" style={{ flex: 1 }} onClick={() => setStep(2)}>
@@ -331,5 +407,12 @@ const styles = {
   summaryRow: {
     display: 'flex', justifyContent: 'space-between',
     fontSize: '0.9rem', marginBottom: 10,
+  },
+  courierGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8,
+  },
+  courierCard: {
+    borderRadius: 8, padding: '10px 12px', cursor: 'pointer',
+    transition: 'all .15s',
   },
 }

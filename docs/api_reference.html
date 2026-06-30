@@ -1,0 +1,1798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API Reference — ShopAI Ecommerce Platform</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:    #0f1724;
+    --navy2:   #1a2535;
+    --navy3:   #243044;
+    --indigo:  #4f46e5;
+    --indigo2: #6366f1;
+    --amber:   #d97706;
+    --amber2:  #f59e0b;
+    --green:   #059669;
+    --red:     #dc2626;
+    --slate:   #475569;
+    --slate2:  #64748b;
+    --border:  #e2e8f0;
+    --bg:      #f8fafc;
+    --white:   #ffffff;
+    --text:    #1e293b;
+    --muted:   #64748b;
+    --mono:    'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+    --sans:    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --sidebar-w: 260px;
+  }
+
+  html { font-size: 15px; scroll-behavior: smooth; }
+  body { font-family: var(--sans); color: var(--text); background: var(--bg); display: flex; min-height: 100vh; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    background: var(--navy);
+    color: #cbd5e1;
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    font-size: 0.82rem;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--navy3); border-radius: 2px; }
+
+  .sidebar-brand {
+    padding: 22px 20px 18px;
+    border-bottom: 1px solid var(--navy3);
+  }
+  .sidebar-brand-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    letter-spacing: -0.01em;
+  }
+  .sidebar-brand-sub {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-top: 3px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .sidebar-group-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #475569;
+    padding: 18px 20px 6px;
+  }
+  .sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 20px;
+    color: #94a3b8;
+    text-decoration: none;
+    border-radius: 0;
+    transition: background 0.15s, color 0.15s;
+    cursor: pointer;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: 0.82rem;
+    font-family: var(--sans);
+  }
+  .sidebar-item:hover { background: var(--navy2); color: #e2e8f0; }
+  .sidebar-item.active { background: var(--navy3); color: #c7d2fe; border-left: 2px solid var(--indigo); padding-left: 18px; }
+  .sidebar-port {
+    margin-left: auto;
+    font-size: 0.66rem;
+    font-family: var(--mono);
+    color: #475569;
+    background: rgba(0,0,0,.25);
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .sidebar-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Main content ── */
+  #main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 0;
+    min-width: 0;
+  }
+
+  /* ── Page header ── */
+  #page-header {
+    background: linear-gradient(135deg, #0f1724 0%, #1e293b 100%);
+    color: #f1f5f9;
+    padding: 52px 52px 44px;
+    border-bottom: 3px solid var(--indigo);
+  }
+  #page-header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+  }
+  #page-header .header-sub {
+    color: #94a3b8;
+    margin-top: 10px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    max-width: 640px;
+  }
+  .header-stats {
+    display: flex;
+    gap: 32px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+  }
+  .stat-item { display: flex; flex-direction: column; gap: 2px; }
+  .stat-num { font-size: 1.6rem; font-weight: 800; color: #c7d2fe; font-variant-numeric: tabular-nums; }
+  .stat-label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; }
+
+  /* ── Section containers ── */
+  .section {
+    padding: 48px 52px;
+    border-bottom: 1px solid var(--border);
+    scroll-margin-top: 0;
+  }
+  .section:last-child { border-bottom: none; }
+  .section-eyebrow {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--indigo2);
+    margin-bottom: 6px;
+  }
+  .section-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .section-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .port-badge {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    background: #ede9fe;
+    color: #5b21b6;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+  }
+  .tag {
+    font-size: 0.72rem;
+    background: #f1f5f9;
+    color: var(--slate);
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .purpose-box {
+    background: #f0f4ff;
+    border: 1px solid #c7d2fe;
+    border-left: 4px solid var(--indigo);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 20px;
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: #1e293b;
+  }
+  .purpose-box strong { color: var(--indigo); }
+
+  /* ── Endpoint table ── */
+  .ep-table-wrap { overflow-x: auto; margin-top: 24px; border-radius: 10px; border: 1px solid var(--border); }
+  .ep-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.835rem;
+    background: var(--white);
+    min-width: 640px;
+  }
+  .ep-table thead tr { background: #f8fafc; border-bottom: 2px solid var(--border); }
+  .ep-table th {
+    padding: 10px 16px;
+    text-align: left;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--slate2);
+    white-space: nowrap;
+  }
+  .ep-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: top;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .ep-table tr:last-child td { border-bottom: none; }
+  .ep-table tr:hover td { background: #fafbff; }
+  .ep-path {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: #1e293b;
+  }
+  .ep-desc { color: var(--slate); font-size: 0.825rem; }
+  .ep-achieve { color: #1e293b; font-size: 0.825rem; }
+
+  /* ── HTTP method badges ── */
+  .method {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    vertical-align: middle;
+  }
+  .m-get    { background: #dcfce7; color: #166534; }
+  .m-post   { background: #fef9c3; color: #854d0e; }
+  .m-put    { background: #dbeafe; color: #1e40af; }
+  .m-patch  { background: #ede9fe; color: #5b21b6; }
+  .m-delete { background: #fee2e2; color: #991b1b; }
+
+  /* ── External API cards ── */
+  .ext-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    margin-top: 28px;
+  }
+  .ext-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .ext-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .ext-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .ext-icon.azure  { background: #dbeafe; }
+  .ext-icon.pay    { background: #fef9c3; }
+  .ext-icon.ship   { background: #dcfce7; }
+  .ext-card-name   { font-size: 1rem; font-weight: 700; }
+  .ext-card-type   { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+  .ext-card-desc   { font-size: 0.87rem; color: var(--slate); line-height: 1.6; }
+  .ext-card-why    { background: #f8fafc; border-radius: 8px; padding: 12px 14px; }
+  .ext-card-why dt { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: var(--slate2); margin-bottom: 4px; }
+  .ext-card-why dd { font-size: 0.84rem; color: var(--text); line-height: 1.55; }
+
+  .ext-endpoints { margin-top: 8px; }
+  .ext-ep-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .ext-ep-row:last-child { border-bottom: none; }
+  .ext-ep-name { font-weight: 600; font-size: 0.82rem; min-width: 200px; flex-shrink: 0; }
+  .ext-ep-desc { font-size: 0.8rem; color: var(--slate); line-height: 1.45; }
+
+  /* ── Architecture diagram (pure CSS) ── */
+  .arch-overview {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin-top: 24px;
+  }
+  .arch-col { display: flex; flex-direction: column; gap: 8px; }
+  .arch-col-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    color: var(--slate2);
+    text-align: center;
+    padding: 8px;
+    background: #f1f5f9;
+    border-radius: 6px;
+  }
+  .arch-box {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+  }
+  .arch-box.core  { border-left: 3px solid var(--indigo); color: #3730a3; }
+  .arch-box.ops   { border-left: 3px solid var(--amber);  color: #92400e; }
+  .arch-box.ai    { border-left: 3px solid var(--green);  color: #065f46; }
+  .arch-box sub   { display: block; font-size: 0.68rem; font-weight: 400; color: var(--muted); margin-top: 2px; }
+
+  /* ── Data flow section ── */
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-top: 24px;
+  }
+  .flow-step {
+    display: flex;
+    gap: 20px;
+    padding: 16px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .flow-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--indigo);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .flow-content { flex: 1; }
+  .flow-title { font-weight: 700; font-size: 0.9rem; margin-bottom: 3px; }
+  .flow-detail { font-size: 0.84rem; color: var(--slate); line-height: 1.55; }
+  .flow-service {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    background: #ede9fe;
+    color: #5b21b6;
+    padding: 1px 6px;
+    border-radius: 4px;
+    margin-right: 4px;
+  }
+
+  /* ── Divider ── */
+  .section-divider {
+    background: linear-gradient(90deg, var(--indigo) 0%, transparent 100%);
+    height: 1px;
+    margin: 0 52px;
+    opacity: 0.2;
+  }
+
+  /* ── Big section heading (internal/external) ── */
+  .big-header {
+    padding: 24px 52px 20px;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    border-top: 3px solid transparent;
+  }
+  .big-header.internal { border-top-color: var(--indigo); }
+  .big-header.external { border-top-color: var(--amber); }
+  .big-header-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+  .big-header-sub { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+
+  @media (max-width: 860px) {
+    #sidebar { display: none; }
+    #main { margin-left: 0; }
+    .section, #page-header, .big-header { padding-left: 24px; padding-right: 24px; }
+    .arch-overview { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════ SIDEBAR ══ -->
+<nav id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-title">ShopAI API Reference</div>
+    <div class="sidebar-brand-sub">Ecommerce Platform · v1.0</div>
+  </div>
+
+  <div class="sidebar-group-label">Overview</div>
+  <a class="sidebar-item" href="#overview">
+    <span class="sidebar-dot" style="background:#94a3b8"></span> Architecture Overview
+  </a>
+  <a class="sidebar-item" href="#rag-flow">
+    <span class="sidebar-dot" style="background:#94a3b8"></span> RAG Data Flow
+  </a>
+
+  <div class="sidebar-group-label">Internal Microservices</div>
+  <a class="sidebar-item" href="#svc-user">
+    <span class="sidebar-dot" style="background:#6366f1"></span> User Management <span class="sidebar-port">:8000</span>
+  </a>
+  <a class="sidebar-item" href="#svc-product">
+    <span class="sidebar-dot" style="background:#6366f1"></span> Product Catalogue <span class="sidebar-port">:8001</span>
+  </a>
+  <a class="sidebar-item" href="#svc-assistant">
+    <span class="sidebar-dot" style="background:#059669"></span> Shopping Assistant <span class="sidebar-port">:8002</span>
+  </a>
+  <a class="sidebar-item" href="#svc-checkout">
+    <span class="sidebar-dot" style="background:#6366f1"></span> Checkout Service <span class="sidebar-port">:8003</span>
+  </a>
+  <a class="sidebar-item" href="#svc-order">
+    <span class="sidebar-dot" style="background:#6366f1"></span> Order Management <span class="sidebar-port">:8004</span>
+  </a>
+  <a class="sidebar-item" href="#svc-inventory">
+    <span class="sidebar-dot" style="background:#d97706"></span> Inventory Service <span class="sidebar-port">:8005</span>
+  </a>
+  <a class="sidebar-item" href="#svc-recom">
+    <span class="sidebar-dot" style="background:#059669"></span> Recommendation Engine <span class="sidebar-port">:8006</span>
+  </a>
+  <a class="sidebar-item" href="#svc-tool">
+    <span class="sidebar-dot" style="background:#059669"></span> Tool Calling Agent <span class="sidebar-port">:8007</span>
+  </a>
+  <a class="sidebar-item" href="#svc-session">
+    <span class="sidebar-dot" style="background:#6366f1"></span> Session Service <span class="sidebar-port">:8008</span>
+  </a>
+  <a class="sidebar-item" href="#svc-payment">
+    <span class="sidebar-dot" style="background:#d97706"></span> Payment &amp; Shipping <span class="sidebar-port">:8009</span>
+  </a>
+  <a class="sidebar-item" href="#svc-guardrails">
+    <span class="sidebar-dot" style="background:#dc2626"></span> Guardrails Service <span class="sidebar-port">:8010</span>
+  </a>
+  <a class="sidebar-item" href="#svc-seller">
+    <span class="sidebar-dot" style="background:#6366f1"></span> Seller Portal <span class="sidebar-port">:8011</span>
+  </a>
+  <a class="sidebar-item" href="#svc-multiagent">
+    <span class="sidebar-dot" style="background:#059669"></span> Multi-Agent System <span class="sidebar-port">:8012</span>
+  </a>
+
+  <div class="sidebar-group-label">External APIs</div>
+  <a class="sidebar-item" href="#ext-azure">
+    <span class="sidebar-dot" style="background:#3b82f6"></span> Azure OpenAI
+  </a>
+  <a class="sidebar-item" href="#ext-razorpay">
+    <span class="sidebar-dot" style="background:#d97706"></span> Razorpay
+  </a>
+  <a class="sidebar-item" href="#ext-shiprocket">
+    <span class="sidebar-dot" style="background:#059669"></span> Shiprocket
+  </a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════ MAIN ══ -->
+<main id="main">
+
+  <!-- Page header -->
+  <div id="page-header">
+    <h1>API Reference</h1>
+    <p class="header-sub">
+      Complete documentation of all internal microservice APIs and external third-party integrations
+      powering the ShopAI ecommerce platform — including purpose, achievable outcomes, and endpoint details.
+    </p>
+    <div class="header-stats">
+      <div class="stat-item">
+        <span class="stat-num">13</span>
+        <span class="stat-label">Microservices</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">180+</span>
+        <span class="stat-label">Internal Endpoints</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">3</span>
+        <span class="stat-label">External APIs</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-num">40+</span>
+        <span class="stat-label">AI Agent Tools</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Overview ── -->
+  <section class="section" id="overview">
+    <div class="section-eyebrow">System Architecture</div>
+    <div class="section-title">Microservice Topology</div>
+
+    <div class="purpose-box" style="margin-top:16px;">
+      The platform is built as a <strong>distributed microservice architecture</strong> where each service owns a bounded domain, exposes a FastAPI REST interface, and runs independently on a dedicated port. The React frontend communicates with services via HTTP through a single <strong>Axios client layer</strong>. Services share a PostgreSQL database with <strong>pgvector</strong> extension for semantic search (1,536-dimensional embeddings).
+    </div>
+
+    <div class="arch-overview" style="margin-top:28px;">
+      <div class="arch-col">
+        <div class="arch-col-label">Core Commerce</div>
+        <div class="arch-box core">User Management<sub>:8000</sub></div>
+        <div class="arch-box core">Product Catalogue<sub>:8001</sub></div>
+        <div class="arch-box core">Checkout Service<sub>:8003</sub></div>
+        <div class="arch-box core">Order Management<sub>:8004</sub></div>
+        <div class="arch-box core">Session Service<sub>:8008</sub></div>
+        <div class="arch-box core">Seller Portal<sub>:8011</sub></div>
+      </div>
+      <div class="arch-col">
+        <div class="arch-col-label">Operations</div>
+        <div class="arch-box ops">Inventory Service<sub>:8005</sub></div>
+        <div class="arch-box ops">Payment &amp; Shipping<sub>:8009</sub></div>
+        <div class="arch-box ops">Guardrails Service<sub>:8010</sub></div>
+      </div>
+      <div class="arch-col">
+        <div class="arch-col-label">AI / Intelligence</div>
+        <div class="arch-box ai">Shopping Assistant<sub>:8002</sub></div>
+        <div class="arch-box ai">Recommendation Engine<sub>:8006</sub></div>
+        <div class="arch-box ai">Tool Calling Agent<sub>:8007</sub></div>
+        <div class="arch-box ai">Multi-Agent System<sub>:8012</sub></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── RAG Flow ── -->
+  <section class="section" id="rag-flow">
+    <div class="section-eyebrow">AI Architecture</div>
+    <div class="section-title">RAG Pipeline — How AI Chat Works End to End</div>
+
+    <div class="purpose-box">
+      The AI shopping assistant uses a <strong>Retrieval-Augmented Generation (RAG)</strong> pipeline. This means it doesn't just run a language model — it first searches the product database semantically, injects relevant results, then generates a personalised response. This is why the answers reference real products with correct prices.
+    </div>
+
+    <div class="flow-steps">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-content">
+          <div class="flow-title">User sends natural-language query</div>
+          <div class="flow-detail">Example: <em>"wireless earphones good for running under ₹3000"</em>. Frontend calls <span class="flow-service">:8002</span> <code>POST /chat</code>.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-content">
+          <div class="flow-title">Guardrails check</div>
+          <div class="flow-detail"><span class="flow-service">:8010</span> screens the query for prompt injection, hate speech, and off-topic content before anything reaches the LLM. Blocked queries return a safe refusal immediately.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-content">
+          <div class="flow-title">Embed the query with Azure OpenAI</div>
+          <div class="flow-detail">The query is sent to <strong>text-embedding-3-small</strong> (Azure OpenAI). It returns a 1,536-dimensional floating-point vector capturing the semantic meaning of the query.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-content">
+          <div class="flow-title">pgvector cosine similarity search</div>
+          <div class="flow-detail"><span class="flow-service">:8001</span> runs a vector similarity query against the <code>products.embedding</code> column. The top-K most semantically similar products are retrieved — not just keyword matches. A product titled "noise-cancelling sport buds" will surface for the running earphones query.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-content">
+          <div class="flow-title">Personalisation from purchase history</div>
+          <div class="flow-detail"><span class="flow-service">:8004</span> fetches the user's past orders. Brands and categories the user has bought before are up-ranked in the result set so recommendations feel personal.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">6</div>
+        <div class="flow-content">
+          <div class="flow-title">Prompt construction &amp; GPT generation</div>
+          <div class="flow-detail">A system prompt is assembled with the top product cards injected as context. <strong>GPT-4o-mini</strong> (Azure OpenAI) generates a conversational response that references the specific products, their prices, and why they fit the query.</div>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">7</div>
+        <div class="flow-content">
+          <div class="flow-title">Response returned with product pills</div>
+          <div class="flow-detail">The API response includes both the natural-language reply and a structured <code>products[]</code> array. The frontend renders clickable product cards below the chat message.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ INTERNAL SERVICES ═══════════ -->
+  <div class="big-header internal">
+    <div class="big-header-title">Internal Microservice APIs</div>
+    <div class="big-header-sub">13 FastAPI services — each owns a distinct business domain and runs on a dedicated port (8000–8012)</div>
+  </div>
+
+  <!-- ── 1. User Management ── -->
+  <section class="section" id="svc-user">
+    <div class="section-eyebrow">Service 01 · Port 8000</div>
+    <div class="section-title">User Management</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8000</span>
+      <span class="tag">Authentication</span>
+      <span class="tag">JWT</span>
+      <span class="tag">Profiles</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Every user-facing feature — saving addresses, tracking orders, personalised recommendations — requires knowing <em>who</em> is making the request. This service is the single source of truth for identity. It issues JWTs (JSON Web Tokens) that every other service verifies to protect data access.<br><br>
+      <strong>What it achieves:</strong> Secure account creation, password-hash-based login, token issuance, profile management, and address book operations. A user logging in once receives a token they present to every subsequent API call, eliminating the need for re-authentication per service.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr>
+            <th>Method</th>
+            <th>Endpoint</th>
+            <th>What it does</th>
+            <th>Why it's needed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/register</td>
+            <td class="ep-achieve">Creates a new user account with hashed password</td>
+            <td class="ep-desc">Onboards new shoppers; stores bcrypt-hashed passwords so plain-text credentials are never persisted</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/login</td>
+            <td class="ep-achieve">Validates credentials, returns a signed JWT access token</td>
+            <td class="ep-desc">Stateless auth — the JWT carries user ID and role, eliminating per-request DB lookups in downstream services</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/profile</td>
+            <td class="ep-achieve">Returns authenticated user's profile details</td>
+            <td class="ep-desc">Frontend account page, auto-fill at checkout; requires valid JWT to access</td>
+          </tr>
+          <tr>
+            <td><span class="method m-put">PUT</span></td>
+            <td class="ep-path">/profile</td>
+            <td class="ep-achieve">Updates name, phone, preferences for the current user</td>
+            <td class="ep-desc">Allows customers to maintain accurate contact info used in order and shipping records</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/users</td>
+            <td class="ep-achieve">Paginated list of all users (admin only)</td>
+            <td class="ep-desc">Admin user-management dashboard; protected by role claim in JWT</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/users/{user_id}</td>
+            <td class="ep-achieve">Fetch a specific user's profile by ID</td>
+            <td class="ep-desc">Used by order and seller services to resolve user details from a stored user_id foreign key</td>
+          </tr>
+          <tr>
+            <td><span class="method m-put">PUT</span></td>
+            <td class="ep-path">/users/{user_id}</td>
+            <td class="ep-achieve">Admin update of any user's data or role</td>
+            <td class="ep-desc">Role promotion (buyer → seller), account status changes, support operations</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/addresses</td>
+            <td class="ep-achieve">List all saved addresses for the authenticated user</td>
+            <td class="ep-desc">Checkout address-picker; avoids re-entering delivery info on every order</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/addresses</td>
+            <td class="ep-achieve">Save a new delivery address to the user's address book</td>
+            <td class="ep-desc">Persists full address (name, street, city, state, PIN, phone) linked to the user account</td>
+          </tr>
+          <tr>
+            <td><span class="method m-put">PUT</span></td>
+            <td class="ep-path">/addresses/{id}</td>
+            <td class="ep-achieve">Update an existing saved address</td>
+            <td class="ep-desc">Correction of typos, locality changes, or phone number updates without re-creating the entry</td>
+          </tr>
+          <tr>
+            <td><span class="method m-delete">DELETE</span></td>
+            <td class="ep-path">/addresses/{id}</td>
+            <td class="ep-achieve">Remove a saved address from the address book</td>
+            <td class="ep-desc">Address book housekeeping; keeps the checkout picker clean</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/health</td>
+            <td class="ep-achieve">Service liveness probe</td>
+            <td class="ep-desc">Kubernetes/monitoring health checks; confirms service and DB connection are alive</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 2. Product Catalogue ── -->
+  <section class="section" id="svc-product">
+    <div class="section-eyebrow">Service 02 · Port 8001</div>
+    <div class="section-title">Product Catalogue</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8001</span>
+      <span class="tag">Search</span>
+      <span class="tag">pgvector</span>
+      <span class="tag">Semantic Search</span>
+      <span class="tag">CRUD</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Products are the core data entity of an ecommerce platform. This service centralises all product data access — listings, search, filtering, individual product detail — so every other service (checkout, assistant, recommendations) queries one authoritative source rather than duplicating product logic.<br><br>
+      <strong>What it achieves:</strong> Full-text and <em>semantic</em> search via pgvector cosine similarity on 1,536-dim embeddings (generated by text-embedding-3-small). Keyword search alone misses intent ("headphones for gym"); vector search understands meaning. Also provides category/brand browsing, price filtering, sorting, and paginated results.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/products</td>
+            <td class="ep-achieve">Paginated product listing with filters (category, brand, price range, sort)</td>
+            <td class="ep-desc">Powers the /products browse page; supports 24-per-page pagination and all sidebar filter combinations</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/products</td>
+            <td class="ep-achieve">Create a new product (seller/admin); auto-generates embedding vector</td>
+            <td class="ep-desc">When a product is saved, its name+description is immediately embedded via Azure OpenAI and stored in pgvector so it becomes instantly searchable</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/products/{id}</td>
+            <td class="ep-achieve">Full product details including images, tags, stock status, discount</td>
+            <td class="ep-desc">Product detail page data; used by checkout, order service, and AI assistant to display complete product context</td>
+          </tr>
+          <tr>
+            <td><span class="method m-put">PUT</span></td>
+            <td class="ep-path">/products/{id}</td>
+            <td class="ep-achieve">Update product fields; re-embeds if name or description changes</td>
+            <td class="ep-desc">Sellers modify pricing, description, images; re-embedding ensures semantic search stays accurate after edits</td>
+          </tr>
+          <tr>
+            <td><span class="method m-delete">DELETE</span></td>
+            <td class="ep-path">/products/{id}</td>
+            <td class="ep-achieve">Soft-delete or permanently remove a product</td>
+            <td class="ep-desc">Discontinued products removed from search results; existing order references are preserved</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/products/search</td>
+            <td class="ep-achieve">Semantic + keyword hybrid search returning ranked results</td>
+            <td class="ep-desc">Core search feature; query is embedded and matched against pgvector index using cosine similarity — finds conceptually related products even with no exact keyword overlap</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/products/categories</td>
+            <td class="ep-achieve">List all available product categories with product counts</td>
+            <td class="ep-desc">Populates sidebar category filter and homepage category grid</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/products/brands</td>
+            <td class="ep-achieve">List all brands present in the catalogue</td>
+            <td class="ep-desc">Brand-filter UI; helps buyers narrow down by preferred brand</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/products/bulk</td>
+            <td class="ep-achieve">Batch insert multiple products with bulk embedding generation</td>
+            <td class="ep-desc">Seller onboarding and data seeding; embeddings generated in batches to stay within API rate limits</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/products/{id}/similar</td>
+            <td class="ep-achieve">Find products similar to a given product using vector similarity</td>
+            <td class="ep-desc">Powers "You might also like" section on product detail page; pure pgvector NN search</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/products/{id}/reviews</td>
+            <td class="ep-achieve">Submit a review (rating + text) for a purchased product</td>
+            <td class="ep-desc">Builds social proof; rating average is recalculated and stored on the product for sorting</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/products/{id}/reviews</td>
+            <td class="ep-achieve">Paginated list of reviews for a product</td>
+            <td class="ep-desc">Product detail page review section; displays reviewer name, rating, text, and date</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 3. Shopping Assistant ── -->
+  <section class="section" id="svc-assistant">
+    <div class="section-eyebrow">Service 03 · Port 8002</div>
+    <div class="section-title">Shopping Assistant</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8002</span>
+      <span class="tag">RAG</span>
+      <span class="tag">GPT-4o-mini</span>
+      <span class="tag">Conversational AI</span>
+      <span class="tag">pgvector</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Keyword search forces users to know exactly what they want to type. A conversational AI assistant understands <em>intent</em> — users can ask vague, natural questions ("gift for a 10-year-old who likes space") and get relevant results. This is the highest-differentiation feature of the platform, directly increasing product discovery and conversion.<br><br>
+      <strong>What it achieves:</strong> Maintains a persistent chat session, embeds each user message, retrieves semantically matching products from pgvector, personalises results using purchase history, and generates natural-language GPT responses with product cards. Falls back to Flan-T5-base (local model) if Azure OpenAI is unavailable.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/chat</td>
+            <td class="ep-achieve">Core RAG chat — embed query → vector search → GPT generate → return reply + products[]</td>
+            <td class="ep-desc">Main chat widget endpoint; the entire RAG pipeline runs here. Returns both a text reply and a structured products array the UI renders as clickable cards</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/chat/stream</td>
+            <td class="ep-achieve">Streaming version of /chat — tokens arrive as SSE events</td>
+            <td class="ep-desc">Provides a "typing" experience for long responses; the UI shows text character-by-character rather than waiting for the full response</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/sessions/{session_id}/history</td>
+            <td class="ep-achieve">Retrieve full conversation history for a chat session</td>
+            <td class="ep-desc">Restores conversation state when the user reopens the chat widget (multi-turn memory across page navigations)</td>
+          </tr>
+          <tr>
+            <td><span class="method m-delete">DELETE</span></td>
+            <td class="ep-path">/sessions/{session_id}</td>
+            <td class="ep-achieve">Clear conversation history and start fresh</td>
+            <td class="ep-desc">Lets the user reset context when switching to a completely different shopping task</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/embed</td>
+            <td class="ep-achieve">Embed arbitrary text and return the 1,536-dim vector</td>
+            <td class="ep-desc">Utility endpoint used by product catalogue service during bulk product ingestion to pre-generate embeddings</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/health</td>
+            <td class="ep-achieve">Checks Azure OpenAI connectivity + pgvector availability</td>
+            <td class="ep-desc">Critical health probe — if Azure OpenAI is down, the service reports degraded so the fallback Flan-T5 path activates</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 4. Checkout Service ── -->
+  <section class="section" id="svc-checkout">
+    <div class="section-eyebrow">Service 04 · Port 8003</div>
+    <div class="section-title">Checkout Service</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8003</span>
+      <span class="tag">Cart</span>
+      <span class="tag">Checkout Flow</span>
+      <span class="tag">Order Creation</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Cart and checkout involve complex state that must be kept consistent: item quantities, pricing at time-of-purchase, coupon application, and order creation must all happen atomically. Isolating this in its own service prevents cart bugs from affecting the product catalogue or order history.<br><br>
+      <strong>What it achieves:</strong> Full cart lifecycle management (add, update, remove, clear), checkout flow (validate → reserve stock → create order → redirect to payment), and coupon code validation. The cart is tied to a session, so guest carts persist across page refreshes.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/cart</td>
+            <td class="ep-achieve">Retrieve current cart contents with live pricing</td>
+            <td class="ep-desc">Cart drawer and checkout page; fetches current effective_price for each item so discounts applied after adding to cart are reflected</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/cart/items</td>
+            <td class="ep-achieve">Add a product to the cart or increment quantity if already present</td>
+            <td class="ep-desc">"Add to Cart" action from product cards, product detail, and AI chat product pills</td>
+          </tr>
+          <tr>
+            <td><span class="method m-put">PUT</span></td>
+            <td class="ep-path">/cart/items/{item_id}</td>
+            <td class="ep-achieve">Update quantity of a specific cart item</td>
+            <td class="ep-desc">Qty stepper in cart drawer; validates requested qty against current inventory before accepting</td>
+          </tr>
+          <tr>
+            <td><span class="method m-delete">DELETE</span></td>
+            <td class="ep-path">/cart/items/{item_id}</td>
+            <td class="ep-achieve">Remove a single item from the cart</td>
+            <td class="ep-desc">Remove button on each cart line item</td>
+          </tr>
+          <tr>
+            <td><span class="method m-delete">DELETE</span></td>
+            <td class="ep-path">/cart</td>
+            <td class="ep-achieve">Empty the entire cart</td>
+            <td class="ep-desc">Post-order cleanup and explicit "Clear cart" action</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/cart/coupon</td>
+            <td class="ep-achieve">Apply a coupon code and receive the discounted total</td>
+            <td class="ep-desc">Validates coupon against the promo database; returns discount amount and updated line items</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/checkout</td>
+            <td class="ep-achieve">Validate cart, reserve inventory, create an order record, return Razorpay order ID</td>
+            <td class="ep-desc">The atomic "place order" action — runs a DB transaction that locks stock, writes the order, and returns the payment gateway order_id for the Razorpay checkout widget</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/checkout/validate</td>
+            <td class="ep-achieve">Pre-flight check: are all cart items in stock at requested quantities?</td>
+            <td class="ep-desc">Called before rendering checkout page so users see stock warnings before entering payment details</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 5. Order Management ── -->
+  <section class="section" id="svc-order">
+    <div class="section-eyebrow">Service 05 · Port 8004</div>
+    <div class="section-title">Order Management</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8004</span>
+      <span class="tag">Orders</span>
+      <span class="tag">Status Tracking</span>
+      <span class="tag">Purchase History</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Once payment is confirmed, the order becomes an immutable record of a commercial transaction. This service owns all post-purchase data — order status, line items, shipping details — and provides it to the customer, seller, admin, and AI recommendation engine.<br><br>
+      <strong>What it achieves:</strong> Full order history for users, seller order management (accept/reject/fulfil), admin-wide order search, and order status updates that trigger notifications. The AI recommendation engine queries this service to personalise suggestions based on what the user actually bought.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/orders</td>
+            <td class="ep-achieve">Paginated list of orders for the authenticated user</td>
+            <td class="ep-desc">My Orders page; shows order ID, date, status, items, and total for the buyer</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/orders</td>
+            <td class="ep-achieve">Create a new order record (called by checkout service after payment confirmation)</td>
+            <td class="ep-desc">Final step of the purchase flow; persists order with items, prices, address, and initial status</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/orders/{order_id}</td>
+            <td class="ep-achieve">Full detail of a specific order including all line items</td>
+            <td class="ep-desc">Order detail page; shows each product, qty, price, and current fulfilment status</td>
+          </tr>
+          <tr>
+            <td><span class="method m-patch">PATCH</span></td>
+            <td class="ep-path">/orders/{order_id}/status</td>
+            <td class="ep-achieve">Update order status (pending → confirmed → shipped → delivered)</td>
+            <td class="ep-desc">Seller marks order fulfilled; admin manages exceptions; status drives customer notification emails</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/orders/{order_id}/cancel</td>
+            <td class="ep-achieve">Cancel an order (before shipment) and trigger inventory restock</td>
+            <td class="ep-desc">Buyer-initiated cancellation; reverses the stock reservation made at checkout</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/orders/admin/all</td>
+            <td class="ep-achieve">Admin view of all orders across all users with filters</td>
+            <td class="ep-desc">Ops dashboard; supports filtering by status, date range, seller, for fulfilment monitoring</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/orders/history/user/{user_id}</td>
+            <td class="ep-achieve">Full purchase history for a user (used by AI services)</td>
+            <td class="ep-desc">AI recommendation engine and shopping assistant pull this to personalise suggestions based on past purchases</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/orders/{order_id}/return</td>
+            <td class="ep-achieve">Initiate a return request for a delivered order</td>
+            <td class="ep-desc">7-day return policy enforcement; creates return record and notifies seller</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 6. Inventory Service ── -->
+  <section class="section" id="svc-inventory">
+    <div class="section-eyebrow">Service 06 · Port 8005</div>
+    <div class="section-title">Inventory Service</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8005</span>
+      <span class="tag">Stock Levels</span>
+      <span class="tag">Reservations</span>
+      <span class="tag">Warehouse</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Stock accuracy is critical — overselling leads to failed fulfilment and customer dissatisfaction. By isolating inventory into its own service, stock updates (reservations, deductions, restocks) use database-level locking so concurrent checkouts for the same product never oversell.<br><br>
+      <strong>What it achieves:</strong> Real-time stock level tracking, checkout-time reservation (soft hold), permanent deduction on order confirmation, and restock on cancellation. Also provides low-stock alerts for sellers.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/inventory/{product_id}</td>
+            <td class="ep-achieve">Current stock level and reservation count for a product</td>
+            <td class="ep-desc">Product detail page shows "In Stock / Out of Stock"; cart validate checks this before checkout</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/inventory/{product_id}/reserve</td>
+            <td class="ep-achieve">Soft-reserve a quantity (held but not yet deducted)</td>
+            <td class="ep-desc">Called at checkout initiation; prevents the same units being sold to two simultaneous buyers during payment</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/inventory/{product_id}/confirm</td>
+            <td class="ep-achieve">Convert reservation to permanent deduction after payment success</td>
+            <td class="ep-desc">Final stock deduction — only called after Razorpay webhook confirms payment. Prevents deducting stock for failed payments</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/inventory/{product_id}/release</td>
+            <td class="ep-achieve">Release a reservation (timeout or order cancellation)</td>
+            <td class="ep-desc">Restores stock visibility if user abandons payment or cancels — keeps available count accurate</td>
+          </tr>
+          <tr>
+            <td><span class="method m-put">PUT</span></td>
+            <td class="ep-path">/inventory/{product_id}/restock</td>
+            <td class="ep-achieve">Add stock (seller replenishment or return processing)</td>
+            <td class="ep-desc">Seller restocks after new shipment; return-processed items re-enter available inventory</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/inventory/low-stock</td>
+            <td class="ep-achieve">List products below the configured low-stock threshold</td>
+            <td class="ep-desc">Seller dashboard alert system; allows proactive restocking before items go out of stock</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/inventory/bulk</td>
+            <td class="ep-achieve">Batch stock level check for multiple product IDs</td>
+            <td class="ep-desc">Cart validate endpoint needs stock for all cart items in one call — bulk prevents N+1 DB queries</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 7. Recommendation Engine ── -->
+  <section class="section" id="svc-recom">
+    <div class="section-eyebrow">Service 07 · Port 8006</div>
+    <div class="section-title">Recommendation Engine</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8006</span>
+      <span class="tag">Collaborative Filtering</span>
+      <span class="tag">Personalisation</span>
+      <span class="tag">ML</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Generic product listings show the same items to everyone. Personalised recommendations surface products the specific user is statistically likely to buy, increasing average order value and session duration. This service analyses purchase history and behavioural signals to generate these rankings.<br><br>
+      <strong>What it achieves:</strong> User-personalised recommendations using collaborative filtering (users-who-bought-this-also-bought), trending products by category, and cross-sell/upsell suggestions. Recommendations are pre-computed and cached, so they return in milliseconds on the homepage.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/recommendations/user/{user_id}</td>
+            <td class="ep-achieve">Personalised product list based on purchase and browse history</td>
+            <td class="ep-desc">Homepage "Recommended for you" section; each user sees a different set ranked by their purchase affinity</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/recommendations/trending</td>
+            <td class="ep-achieve">Top trending products globally or by category (rolling 7-day window)</td>
+            <td class="ep-desc">Guest homepage and category pages; popularity-based discovery for new users without history</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/recommendations/similar/{product_id}</td>
+            <td class="ep-achieve">Products frequently co-purchased with the given product</td>
+            <td class="ep-desc">"Frequently bought together" on product detail page; drives cross-sell basket size</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/recommendations/event</td>
+            <td class="ep-achieve">Record a behavioural event (view, add-to-cart, purchase) for model training</td>
+            <td class="ep-desc">Continuously improves the model; every interaction is a signal — purchase events weighted 5x view events</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/recommendations/retrain</td>
+            <td class="ep-achieve">Trigger a model retraining job from accumulated event data (admin)</td>
+            <td class="ep-desc">Scheduled nightly via cron; recomputes affinity scores so recommendations stay fresh as purchase patterns evolve</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 8. Tool Calling Agent ── -->
+  <section class="section" id="svc-tool">
+    <div class="section-eyebrow">Service 08 · Port 8007</div>
+    <div class="section-title">Tool Calling Agent</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8007</span>
+      <span class="tag">LLM Tool Use</span>
+      <span class="tag">Function Calling</span>
+      <span class="tag">GPT-4o-mini</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Standard chat completions only generate text. OpenAI's <em>function-calling</em> feature lets the LLM decide which real API operations to invoke based on user intent. This service wraps those tool definitions so the AI can autonomously search products, check inventory, add to cart, and look up orders — without the user navigating the UI manually.<br><br>
+      <strong>What it achieves:</strong> The AI can execute multi-step tasks from a single user message. "Add the cheapest Sony headphones under ₹5000 to my cart" triggers: search → filter → cart-add — all via tool calls, not scripted logic.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/agent/chat</td>
+            <td class="ep-achieve">Run the tool-calling agent loop: LLM decides which tools to call, executes them, synthesises a final reply</td>
+            <td class="ep-desc">Advanced assistant mode; the LLM autonomously chains multiple API calls to fulfil complex requests</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/agent/tools</td>
+            <td class="ep-achieve">Returns the list of available tool definitions (JSON Schema)</td>
+            <td class="ep-desc">Self-documenting; lets the frontend know which capabilities the agent exposes (useful for admin or developer views)</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/agent/tools/search_products</td>
+            <td class="ep-achieve">Tool: semantic product search callable by the LLM</td>
+            <td class="ep-desc">Allows the LLM to search the product catalogue with filters; returns structured JSON the model can reason over</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/agent/tools/add_to_cart</td>
+            <td class="ep-achieve">Tool: add a product to the user's cart</td>
+            <td class="ep-desc">AI can complete purchases on user's behalf after confirmation; bridges chat and commerce action</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/agent/tools/check_inventory</td>
+            <td class="ep-achieve">Tool: verify stock availability before recommending</td>
+            <td class="ep-desc">Prevents the LLM from suggesting out-of-stock items; AI checks live stock before surfacing a product</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/agent/tools/get_order_status</td>
+            <td class="ep-achieve">Tool: look up order status for the authenticated user</td>
+            <td class="ep-desc">"Where is my order?" handled conversationally without the user navigating to My Orders page</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/agent/tools/get_recommendations</td>
+            <td class="ep-achieve">Tool: fetch personalised recommendations to inject into AI context</td>
+            <td class="ep-desc">AI can proactively suggest items based on user profile within the conversation flow</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/agent/tools/apply_coupon</td>
+            <td class="ep-achieve">Tool: apply a promo code to the user's cart</td>
+            <td class="ep-desc">User can say "apply coupon SAVE20" in chat and AI acts on it directly</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/agent/tools/track_shipment</td>
+            <td class="ep-achieve">Tool: query Shiprocket for live shipment tracking</td>
+            <td class="ep-desc">"Track my package" in chat triggers a live Shiprocket API call and returns current status and location</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 9. Session Service ── -->
+  <section class="section" id="svc-session">
+    <div class="section-eyebrow">Service 09 · Port 8008</div>
+    <div class="section-title">Session Service</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8008</span>
+      <span class="tag">Guest Sessions</span>
+      <span class="tag">Cart Persistence</span>
+      <span class="tag">Analytics</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Ecommerce platforms need to track state for users who haven't logged in yet (guest cart, browse history). Session IDs provide this without requiring account creation, reducing friction. When a guest logs in, their session merges with their account.<br><br>
+      <strong>What it achieves:</strong> Generates and validates anonymous session tokens, links sessions to user accounts on login, persists guest cart contents, and provides session analytics (active users, conversion funnel data).
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/sessions</td>
+            <td class="ep-achieve">Create a new anonymous session; returns session_id</td>
+            <td class="ep-desc">Called on first page load for non-logged-in users; the session_id is stored in localStorage and sent with every cart request</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/sessions/{session_id}</td>
+            <td class="ep-achieve">Validate session and return associated data (cart, user_id if linked)</td>
+            <td class="ep-desc">On page load, confirm the session is still valid; if expired, a new one is created transparently</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/sessions/{session_id}/link</td>
+            <td class="ep-achieve">Associate a session with a logged-in user account</td>
+            <td class="ep-desc">Post-login merge: guest cart items are transferred to the user's persistent cart; browse history is attributed to the account</td>
+          </tr>
+          <tr>
+            <td><span class="method m-delete">DELETE</span></td>
+            <td class="ep-path">/sessions/{session_id}</td>
+            <td class="ep-achieve">Invalidate a session (logout)</td>
+            <td class="ep-desc">Logout action; ensures the session token can no longer be used to access cart or account data</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/sessions/analytics/active</td>
+            <td class="ep-achieve">Count of active sessions in the last N minutes</td>
+            <td class="ep-desc">Real-time active users metric for admin dashboard and traffic monitoring</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 10. Payment & Shipping ── -->
+  <section class="section" id="svc-payment">
+    <div class="section-eyebrow">Service 10 · Port 8009</div>
+    <div class="section-title">Payment &amp; Shipping</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8009</span>
+      <span class="tag">Razorpay</span>
+      <span class="tag">Shiprocket</span>
+      <span class="tag">Webhooks</span>
+      <span class="tag">HMAC-SHA256</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Payment processing and shipping logistics are high-stakes operations involving third-party systems with their own security requirements (webhook signature verification, JWT-authenticated APIs). Isolating them prevents payment logic from leaking into other services and provides a single place to update when gateway credentials change.<br><br>
+      <strong>What it achieves:</strong> Creates Razorpay payment orders, verifies payment signatures (HMAC-SHA256), handles Razorpay webhooks, creates Shiprocket shipments, tracks packages, and handles shipping webhooks for delivery status updates. Shiprocket JWT tokens are cached for 23 hours to avoid rate limits.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/payment/create-order</td>
+            <td class="ep-achieve">Create a Razorpay order with amount and currency; returns order_id for the checkout widget</td>
+            <td class="ep-desc">Razorpay requires a server-side order creation before the client-side payment widget opens — this prevents amount tampering</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/payment/verify</td>
+            <td class="ep-achieve">Verify Razorpay payment signature (HMAC-SHA256) after client-side payment completion</td>
+            <td class="ep-desc">Critical security step — verifies the payment response came from Razorpay and wasn't forged by the client. Only after verification does the order get confirmed</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/payment/webhook</td>
+            <td class="ep-achieve">Receive Razorpay async webhook events (payment.captured, payment.failed, refund.created)</td>
+            <td class="ep-desc">Handles payment events that arrive asynchronously after the user closes the browser; signature verified via webhook secret before processing</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/payment/refund</td>
+            <td class="ep-achieve">Initiate a refund for a payment via Razorpay API</td>
+            <td class="ep-desc">Order cancellation and return processing triggers a refund back to the original payment method</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/payment/{payment_id}</td>
+            <td class="ep-achieve">Fetch payment details and status from Razorpay</td>
+            <td class="ep-desc">Order detail page payment info; admin reconciliation of payment records</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/shipping/create-shipment</td>
+            <td class="ep-achieve">Create a Shiprocket shipment for a confirmed order; returns AWB tracking number</td>
+            <td class="ep-desc">Converts an order into a shipping label and assigns it to a courier — requires Shiprocket JWT obtained and cached by this service</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/shipping/track/{awb}</td>
+            <td class="ep-achieve">Live tracking status from Shiprocket for an AWB number</td>
+            <td class="ep-desc">Order tracking page and AI "track my order" tool; returns courier name, current location, and estimated delivery</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/shipping/couriers</td>
+            <td class="ep-achieve">List available courier partners and their serviceability for a pincode</td>
+            <td class="ep-desc">Shows estimated delivery dates and courier options at checkout; uses Shiprocket's serviceability API</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/shipping/webhook</td>
+            <td class="ep-achieve">Receive Shiprocket delivery status webhooks</td>
+            <td class="ep-desc">Updates order status to "shipped", "out for delivery", "delivered" automatically as events arrive from the courier</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/shipping/cancel/{shipment_id}</td>
+            <td class="ep-achieve">Cancel a shipment before pickup</td>
+            <td class="ep-desc">Order cancellation flow — if shipment was already created, it must be cancelled with Shiprocket to prevent pickup</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 11. Guardrails Service ── -->
+  <section class="section" id="svc-guardrails">
+    <div class="section-eyebrow">Service 11 · Port 8010</div>
+    <div class="section-title">Guardrails Service</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8010</span>
+      <span class="tag">Content Moderation</span>
+      <span class="tag">Prompt Injection Defense</span>
+      <span class="tag">Safety</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Any system that feeds user text into an LLM is vulnerable to prompt injection attacks (users crafting inputs that override system instructions), jailbreaks, and generating harmful content. The guardrails service intercepts all AI inputs and outputs to enforce a safety perimeter.<br><br>
+      <strong>What it achieves:</strong> Pre-flight screening of user messages for injection attempts, hate speech, illegal content, and off-topic queries (not shopping-related). Post-generation screening of LLM output for policy violations. Logs all violations for audit. The shopping assistant and tool-calling agent both call this service before and after every LLM interaction.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/guardrails/check-input</td>
+            <td class="ep-achieve">Screen user input for prompt injection, hate speech, or harmful content before it reaches the LLM</td>
+            <td class="ep-desc">First line of defence; returns safe/unsafe verdict and category. Unsafe inputs are rejected without consuming LLM tokens</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/guardrails/check-output</td>
+            <td class="ep-achieve">Screen LLM-generated response before it's sent to the client</td>
+            <td class="ep-desc">Catches policy violations that slipped through the input check (e.g. model generating misleading price information)</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/guardrails/check-relevance</td>
+            <td class="ep-achieve">Determine if a query is shopping-related (vs. general knowledge, politics, etc.)</td>
+            <td class="ep-desc">Keeps the assistant focused on its purpose; off-topic queries get a polite redirect rather than consuming tokens on irrelevant generation</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/guardrails/violations</td>
+            <td class="ep-achieve">Paginated log of all detected violations (admin only)</td>
+            <td class="ep-desc">Audit trail for security review; helps identify patterns of misuse and tune guardrail sensitivity</td>
+          </tr>
+          <tr>
+            <td><span class="method m-put">PUT</span></td>
+            <td class="ep-path">/guardrails/config</td>
+            <td class="ep-achieve">Update guardrail sensitivity thresholds without redeployment</td>
+            <td class="ep-desc">Allows ops team to adjust false-positive/negative trade-off in response to observed violation patterns</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 12. Seller Portal ── -->
+  <section class="section" id="svc-seller">
+    <div class="section-eyebrow">Service 12 · Port 8011</div>
+    <div class="section-title">Seller Portal</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8011</span>
+      <span class="tag">Seller Management</span>
+      <span class="tag">Analytics</span>
+      <span class="tag">Product Management</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> The platform is a marketplace where third-party sellers list products. Sellers need their own dashboard to manage listings, view their orders, track revenue, and respond to reviews — isolated from the admin view and from other sellers' data.<br><br>
+      <strong>What it achieves:</strong> Seller registration, product listing CRUD, order management for seller's own products, sales analytics (revenue by period, top products), and payout tracking.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/sellers/register</td>
+            <td class="ep-achieve">Register a new seller account with business details and bank info</td>
+            <td class="ep-desc">Onboards marketplace sellers; stores GST number, bank account for payouts, and business address</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/sellers/{seller_id}/products</td>
+            <td class="ep-achieve">List all products belonging to a seller</td>
+            <td class="ep-desc">Seller's product management dashboard; each seller sees only their own listings</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/sellers/{seller_id}/orders</td>
+            <td class="ep-achieve">Orders containing the seller's products</td>
+            <td class="ep-desc">Seller's order fulfilment queue; they see buyer address and items but not payment details</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/sellers/{seller_id}/analytics</td>
+            <td class="ep-achieve">Revenue, units sold, conversion rate for a date range</td>
+            <td class="ep-desc">Business intelligence for sellers; helps identify best-selling products and revenue trends</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/sellers/{seller_id}/payouts</td>
+            <td class="ep-achieve">Payout history and pending payout amount</td>
+            <td class="ep-desc">Sellers track when platform transfers their earnings minus commission</td>
+          </tr>
+          <tr>
+            <td><span class="method m-put">PUT</span></td>
+            <td class="ep-path">/sellers/{seller_id}/profile</td>
+            <td class="ep-achieve">Update seller business information and bank details</td>
+            <td class="ep-desc">Sellers update bank account for payouts or change business address</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/sellers (admin)</td>
+            <td class="ep-achieve">List all sellers across the platform with verification status</td>
+            <td class="ep-desc">Admin seller verification workflow; new sellers await approval before listings go live</td>
+          </tr>
+          <tr>
+            <td><span class="method m-patch">PATCH</span></td>
+            <td class="ep-path">/sellers/{seller_id}/verify</td>
+            <td class="ep-achieve">Approve or reject a seller's registration (admin)</td>
+            <td class="ep-desc">KYC compliance — only verified sellers can list products; prevents fraudulent sellers from entering the marketplace</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ── 13. Multi-Agent System ── -->
+  <section class="section" id="svc-multiagent">
+    <div class="section-eyebrow">Service 13 · Port 8012</div>
+    <div class="section-title">Multi-Agent System</div>
+    <div class="section-meta">
+      <span class="port-badge">localhost:8012</span>
+      <span class="tag">Orchestration</span>
+      <span class="tag">Parallel Agents</span>
+      <span class="tag">Complex Queries</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it exists:</strong> Some user requests require expertise from multiple domains simultaneously — e.g. "find the best laptop for video editing under ₹80,000 and check if it ships to Bangalore by Friday." A single agent would serialize these tasks. A multi-agent system spawns specialist sub-agents (product expert, inventory checker, shipping estimator) and orchestrates their results in parallel, providing faster and more accurate composite answers.<br><br>
+      <strong>What it achieves:</strong> Orchestrates multiple specialist AI agents concurrently, merges their outputs, and synthesises a coherent response. Handles complex multi-intent queries that exceed the capability of a single-agent RAG pipeline.
+    </div>
+    <div class="ep-table-wrap">
+      <table class="ep-table">
+        <thead>
+          <tr><th>Method</th><th>Endpoint</th><th>What it does</th><th>Why it's needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/multi-agent/query</td>
+            <td class="ep-achieve">Submit a complex query; orchestrator decomposes it, routes sub-tasks to specialist agents, and synthesises the final answer</td>
+            <td class="ep-desc">Handles multi-intent queries a single RAG call can't answer well; parallel execution makes it faster than sequential agent chains</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/multi-agent/agents</td>
+            <td class="ep-achieve">List available specialist sub-agents and their capabilities</td>
+            <td class="ep-desc">Self-describing registry; orchestrator uses this at runtime to route task components to the right specialist</td>
+          </tr>
+          <tr>
+            <td><span class="method m-get">GET</span></td>
+            <td class="ep-path">/multi-agent/tasks/{task_id}</td>
+            <td class="ep-achieve">Poll status of a long-running multi-agent task</td>
+            <td class="ep-desc">Async task pattern — complex orchestrations may take 5-10s; client polls until complete rather than holding an open HTTP connection</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/multi-agent/agents/product-expert</td>
+            <td class="ep-achieve">Specialist: deep product research and comparison</td>
+            <td class="ep-desc">Analyses specs, reviews, and category context; called when query involves "which is better" or detailed comparison</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/multi-agent/agents/price-analyst</td>
+            <td class="ep-achieve">Specialist: price trend analysis and value assessment</td>
+            <td class="ep-desc">Evaluates whether a product's current price represents good value given historical pricing and alternatives</td>
+          </tr>
+          <tr>
+            <td><span class="method m-post">POST</span></td>
+            <td class="ep-path">/multi-agent/agents/logistics-agent</td>
+            <td class="ep-achieve">Specialist: shipping availability, pincode serviceability, delivery ETA</td>
+            <td class="ep-desc">Answers "will this reach me by X date?" queries by combining Shiprocket courier data with pincode serviceability</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ═══════════ EXTERNAL APIs ═══════════ -->
+  <div class="big-header external">
+    <div class="big-header-title">External API Integrations</div>
+    <div class="big-header-sub">3 third-party services — Azure OpenAI for AI capabilities, Razorpay for payments, Shiprocket for logistics</div>
+  </div>
+
+  <!-- ── Azure OpenAI ── -->
+  <section class="section" id="ext-azure">
+    <div class="section-eyebrow">External API 01</div>
+    <div class="section-title">Azure OpenAI</div>
+    <div class="section-meta">
+      <span class="tag">GPT-4o-mini</span>
+      <span class="tag">text-embedding-3-small</span>
+      <span class="tag">REST API</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it's required:</strong> The entire AI shopping assistant, semantic search, and tool-calling agent depend on two capabilities: (1) <em>generating</em> natural-language responses and (2) <em>embedding</em> text into vectors for similarity search. Azure OpenAI provides both as managed, enterprise-grade APIs with SLA guarantees, content filtering, and Indian data-residency options.<br><br>
+      <strong>What it achieves:</strong> Powers all intelligent features of the platform. Without it, the search degrades to keyword-only (no semantic understanding), the chat assistant returns template responses, and recommendation personalisation loses its language-model quality. A local Flan-T5-base fallback exists but produces significantly lower-quality results.
+    </div>
+
+    <div style="margin-top:28px;">
+      <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--slate2);margin-bottom:12px;">Models Used</div>
+      <div class="ext-grid" style="margin-top:0;">
+        <div class="ext-card">
+          <div class="ext-card-header">
+            <div class="ext-icon azure" style="font-size:1rem;font-family:var(--mono);font-weight:700;width:auto;padding:0 10px;color:#1d4ed8;">GPT</div>
+            <div>
+              <div class="ext-card-name">GPT-4o-mini (GPT-5.4-mini deploy)</div>
+              <div class="ext-card-type">Chat Completion · gpt-4o-mini</div>
+            </div>
+          </div>
+          <div class="ext-card-desc">Generates conversational shopping assistant responses, synthesises multi-agent outputs, and powers tool-calling decision-making. Chosen for its balance of quality and speed at low cost — complex reasoning isn't required for most shopping queries.</div>
+          <div class="ext-card-why">
+            <dl>
+              <dt>Why this model</dt>
+              <dd>Fast inference (~800ms), supports function-calling JSON mode, low per-token cost for high-frequency chat workloads. GPT-4-level quality not needed for product recommendation responses.</dd>
+            </dl>
+          </div>
+        </div>
+        <div class="ext-card">
+          <div class="ext-card-header">
+            <div class="ext-icon azure" style="font-size:0.8rem;font-family:var(--mono);font-weight:700;width:auto;padding:0 8px;color:#1d4ed8;">EMB</div>
+            <div>
+              <div class="ext-card-name">text-embedding-3-small</div>
+              <div class="ext-card-type">Embeddings · 1,536 dimensions</div>
+            </div>
+          </div>
+          <div class="ext-card-desc">Converts product descriptions and user queries into 1,536-dimensional float vectors for pgvector cosine similarity search. Every product in the catalogue has a pre-computed embedding; queries are embedded at search time for comparison.</div>
+          <div class="ext-card-why">
+            <dl>
+              <dt>Why this model</dt>
+              <dd>State-of-the-art retrieval quality in a compact 1,536-dim space. Cheaper than text-embedding-3-large (3,072 dims) with minimal quality loss for product search. Embeddings are computed once per product and stored, so ongoing cost is only for query embedding.</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:28px;">
+      <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--slate2);margin-bottom:12px;">API Operations</div>
+      <div class="ext-endpoints">
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">POST /chat/completions</div>
+          <div class="ext-ep-desc">Main LLM call — sends conversation history + product context as system message; receives assistant reply. Called by shopping_assistant and tool_calling_agent services for every user message.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">POST /embeddings</div>
+          <div class="ext-ep-desc">Generates the 1,536-dim vector for a product or query text. Called during: product creation/update (product embedding), user search queries (query embedding), bulk product seeding.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">Function Calling (tool_use)</div>
+          <div class="ext-ep-desc">JSON schema function definitions passed to the chat completion API allow GPT to decide which internal tools (search_products, add_to_cart, etc.) to invoke and with what arguments.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Razorpay ── -->
+  <section class="section" id="ext-razorpay">
+    <div class="section-eyebrow">External API 02</div>
+    <div class="section-title">Razorpay</div>
+    <div class="section-meta">
+      <span class="tag">UPI</span>
+      <span class="tag">Cards</span>
+      <span class="tag">Net Banking</span>
+      <span class="tag">HMAC-SHA256</span>
+      <span class="tag">Webhooks</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it's required:</strong> Building a payment processor from scratch requires PCI-DSS compliance, banking partnerships, and fraud detection — all extremely expensive and time-consuming. Razorpay is an Indian payment gateway that provides all of these out of the box, supports UPI, cards, net banking, and wallets, and is trusted by thousands of Indian businesses.<br><br>
+      <strong>What it achieves:</strong> Secure payment collection supporting all major Indian payment methods. The server-side order creation + client-side widget + server-side signature verification flow ensures the payment amount cannot be tampered with by the client. HMAC-SHA256 signature verification guarantees that webhook events genuinely came from Razorpay.
+    </div>
+
+    <div style="margin-top:28px;">
+      <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--slate2);margin-bottom:12px;">Payment Flow</div>
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-num" style="background:var(--amber)">1</div>
+          <div class="flow-content">
+            <div class="flow-title">Server creates Razorpay order</div>
+            <div class="flow-detail"><span class="flow-service">:8009</span> calls <code>POST /v1/orders</code> with amount in paise, currency INR, and receipt (our order ID). Razorpay returns a <code>razorpay_order_id</code>.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num" style="background:var(--amber)">2</div>
+          <div class="flow-content">
+            <div class="flow-title">Client-side payment widget</div>
+            <div class="flow-detail">Frontend initialises Razorpay.js with the <code>razorpay_order_id</code>. User completes payment (UPI, card, etc.) in the Razorpay-hosted widget. On success, Razorpay returns <code>payment_id</code>, <code>order_id</code>, <code>signature</code>.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num" style="background:var(--amber)">3</div>
+          <div class="flow-content">
+            <div class="flow-title">Server verifies signature</div>
+            <div class="flow-detail"><span class="flow-service">:8009</span> computes <code>HMAC-SHA256(razorpay_order_id + "|" + razorpay_payment_id, secret_key)</code> and compares against the received signature. Mismatch → reject. Match → proceed to order confirmation.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-num" style="background:var(--amber)">4</div>
+          <div class="flow-content">
+            <div class="flow-title">Async webhook confirmation</div>
+            <div class="flow-detail">Razorpay sends a <code>payment.captured</code> webhook (also HMAC-SHA256 verified) as a reliable secondary confirmation. Used to handle edge cases where the client never called /verify (browser crash, network loss).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;">
+      <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--slate2);margin-bottom:12px;">API Operations Used</div>
+      <div class="ext-endpoints">
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">POST /v1/orders</div>
+          <div class="ext-ep-desc">Create a Razorpay order. Server-side only — ensures amount cannot be manipulated by client-side JS.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">GET /v1/payments/{id}</div>
+          <div class="ext-ep-desc">Fetch full payment details for admin order reconciliation and receipt generation.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">POST /v1/payments/{id}/refund</div>
+          <div class="ext-ep-desc">Issue a full or partial refund to the buyer's original payment method. Called on order cancellation and return approval.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">Webhook: payment.captured</div>
+          <div class="ext-ep-desc">Async event fired when payment is captured. Secondary confirmation path — updates order to "payment_confirmed" if /verify was not called.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">Webhook: payment.failed</div>
+          <div class="ext-ep-desc">Fires if payment is declined. Triggers stock reservation release and order cancellation.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">Webhook: refund.created</div>
+          <div class="ext-ep-desc">Confirms refund initiation; updates order record with refund ID and amount for customer communication.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Shiprocket ── -->
+  <section class="section" id="ext-shiprocket">
+    <div class="section-eyebrow">External API 03</div>
+    <div class="section-title">Shiprocket</div>
+    <div class="section-meta">
+      <span class="tag">Shipping Aggregator</span>
+      <span class="tag">Multi-courier</span>
+      <span class="tag">JWT Auth</span>
+      <span class="tag">Webhooks</span>
+    </div>
+    <div class="purpose-box">
+      <strong>Why it's required:</strong> Shipping logistics requires integrating with multiple courier companies (BlueDart, Delhivery, DTDC, Ekart, etc.) — each with their own API, label format, and tracking system. Shiprocket is an aggregator that provides a single API across 17+ courier partners, automatic courier selection based on weight/pincode/cost, and a unified tracking system.<br><br>
+      <strong>What it achieves:</strong> Single-API shipment creation for all courier partners, automatic AWB (Air Waybill) number generation, pincode serviceability checks, live tracking aggregated from multiple couriers, label generation, and delivery webhook events. The JWT token (23h TTL) is cached in the payment_shipping service to avoid re-authenticating on every call.
+    </div>
+
+    <div style="margin-top:28px;">
+      <div style="font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--slate2);margin-bottom:12px;">API Operations Used</div>
+      <div class="ext-endpoints">
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">POST /v1/external/auth/login</div>
+          <div class="ext-ep-desc">Authenticates with Shiprocket using email+password; returns a JWT valid for 23 hours. Cached by payment_shipping service to avoid re-authentication on every shipment creation.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">POST /v1/external/orders/create/adhoc</div>
+          <div class="ext-ep-desc">Create a shipment order in Shiprocket. Sends buyer address, product weight/dimensions, and seller pickup address. Shiprocket auto-selects the cheapest/fastest courier and returns an AWB tracking number.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">GET /v1/external/courier/serviceability</div>
+          <div class="ext-ep-desc">Check if a delivery pincode is serviceable and get estimated delivery dates per courier. Shown to user at checkout so they can see when their order will arrive before paying.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">GET /v1/external/courier/track/awb/{awb}</div>
+          <div class="ext-ep-desc">Live tracking for an AWB number — returns current status, location, and estimated delivery date. Used by order tracking page and AI tracking tool.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">POST /v1/external/orders/cancel</div>
+          <div class="ext-ep-desc">Cancel a shipment before courier pickup. Required when an order is cancelled after a Shiprocket order was already created but before physical pickup.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">GET /v1/external/courier/generate/label</div>
+          <div class="ext-ep-desc">Generate a printable shipping label PDF for the seller to attach to the package. Includes barcode, address, and AWB number.</div>
+        </div>
+        <div class="ext-ep-row">
+          <div class="ext-ep-name">Webhook: shipment_status</div>
+          <div class="ext-ep-desc">Push notification from Shiprocket when package status changes (pickup → in-transit → out-for-delivery → delivered). Updates order status in real-time without polling.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <div style="padding:32px 52px;background:#f8fafc;border-top:1px solid var(--border);color:var(--muted);font-size:0.8rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+    <span>ShopAI Ecommerce Platform — API Reference v1.0</span>
+    <span>13 microservices · 180+ endpoints · 3 external APIs · FastAPI + pgvector + Azure OpenAI</span>
+  </div>
+
+</main>
+
+<script>
+  // Sidebar active-link highlight on scroll
+  const sections = document.querySelectorAll('section[id], div[id]')
+  const items = document.querySelectorAll('.sidebar-item')
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        items.forEach(i => {
+          i.classList.toggle('active', i.getAttribute('href') === '#' + e.target.id)
+        })
+      }
+    })
+  }, { rootMargin: '-20% 0px -70% 0px' })
+  sections.forEach(s => obs.observe(s))
+</script>
+</body>
+</html>

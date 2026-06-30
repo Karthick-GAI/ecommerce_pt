@@ -22,19 +22,22 @@ export function CartProvider({ children }) {
     let sid = localStorage.getItem('sessionId')
     if (sid) {
       try {
-        const res = await sessionsApi.getCart(sid)
-        const active = (res.data.items || []).filter(i => !i.saved_for_later)
-        setItems(active)
-        setSessionId(sid)
-        return
-      } catch {
-        localStorage.removeItem('sessionId')
-        sid = null
-      }
+        // Validate that the session is still active (not expired/completed)
+        const sessionRes = await sessionsApi.get(sid)
+        if (sessionRes.data.status === 'active') {
+          const cartRes = await sessionsApi.getCart(sid)
+          const active = (cartRes.data.items || []).filter(i => !i.saved_for_later)
+          setItems(active)
+          setSessionId(sid)
+          return
+        }
+      } catch { /* session not found or network error — fall through to create */ }
+      localStorage.removeItem('sessionId')
+      sid = null
     }
     try {
       const res = await sessionsApi.create(user?.id)
-      sid = res.data.id
+      sid = res.data.session_id
       localStorage.setItem('sessionId', sid)
       setSessionId(sid)
       setItems([])

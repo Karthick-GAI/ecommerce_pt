@@ -43,6 +43,8 @@ export default function Header() {
           {/* Actions */}
           <nav style={styles.nav}>
             <Link to="/products" style={styles.navLink}>Browse</Link>
+            <Link to="/inventory" style={styles.navLink}>Ops</Link>
+            <Link to="/guardrails" style={styles.navLink}>Security</Link>
 
             {user ? (
               <>

@@ -10,8 +10,11 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const res = await authApi.login({ email, password })
-    const { access_token, user: u } = res.data
+    const { access_token } = res.data
     localStorage.setItem('token', access_token)
+    // Pass token explicitly — don't rely on interceptor picking it up in time
+    const profileRes = await authApi.me(access_token)
+    const u = profileRes.data
     localStorage.setItem('user', JSON.stringify(u))
     setUser(u)
     return u

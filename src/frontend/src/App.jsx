@@ -7,6 +7,8 @@ import ProductDetail from './pages/ProductDetail.jsx'
 import Checkout from './pages/Checkout.jsx'
 import Orders from './pages/Orders.jsx'
 import Auth from './pages/Auth.jsx'
+import Inventory from './pages/Inventory.jsx'
+import Guardrails from './pages/Guardrails.jsx'
 
 export default function App() {
   return (
@@ -20,6 +22,8 @@ export default function App() {
           <Route path="/checkout"          element={<Checkout />} />
           <Route path="/orders"            element={<Orders />} />
           <Route path="/auth"              element={<Auth />} />
+          <Route path="/inventory"         element={<Inventory />} />
+          <Route path="/guardrails"        element={<Guardrails />} />
           <Route path="*"                  element={<Home />} />
         </Routes>
       </main>
