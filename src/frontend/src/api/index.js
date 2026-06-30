@@ -38,6 +38,33 @@ export const authApi = {
   }),
 }
 
+// ── User Profile ──────────────────────────────────────────────────────────────
+
+export const profileApi = {
+  get:            ()       => userApi.get('/users/me'),
+  update:         (data)   => userApi.put('/users/me', data),
+  changePassword: (data)   => userApi.post('/users/me/change-password', data),
+}
+
+// ── Address Book ──────────────────────────────────────────────────────────────
+
+export const addressApi = {
+  list:       ()              => userApi.get('/users/me/addresses/'),
+  create:     (data)          => userApi.post('/users/me/addresses/', data),
+  update:     (id, data)      => userApi.put(`/users/me/addresses/${id}`, data),
+  remove:     (id)            => userApi.delete(`/users/me/addresses/${id}`),
+  setDefault: (id)            => userApi.put(`/users/me/addresses/${id}/default`),
+}
+
+// ── Saved Payment Methods ─────────────────────────────────────────────────────
+
+export const paymentMethodApi = {
+  list:       ()     => userApi.get('/users/me/payment-methods/'),
+  create:     (data) => userApi.post('/users/me/payment-methods/', data),
+  remove:     (id)   => userApi.delete(`/users/me/payment-methods/${id}`),
+  setDefault: (id)   => userApi.put(`/users/me/payment-methods/${id}/default`),
+}
+
 // ── Products ──────────────────────────────────────────────────────────────────
 
 export const productsApi = {

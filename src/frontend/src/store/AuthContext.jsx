@@ -31,8 +31,13 @@ export function AuthProvider({ children }) {
     setUser(null)
   }, [])
 
+  const updateUser = useCallback((updated) => {
+    localStorage.setItem('user', JSON.stringify(updated))
+    setUser(updated)
+  }, [])
+
   return (
-    <AuthCtx.Provider value={{ user, login, register, logout, isLoggedIn: !!user }}>
+    <AuthCtx.Provider value={{ user, login, register, logout, isLoggedIn: !!user, setUser: updateUser }}>
       {children}
     </AuthCtx.Provider>
   )

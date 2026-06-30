@@ -9,6 +9,7 @@ import Orders from './pages/Orders.jsx'
 import Auth from './pages/Auth.jsx'
 import Inventory from './pages/Inventory.jsx'
 import Guardrails from './pages/Guardrails.jsx'
+import Profile from './pages/Profile.jsx'
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/auth"              element={<Auth />} />
           <Route path="/inventory"         element={<Inventory />} />
           <Route path="/guardrails"        element={<Guardrails />} />
+          <Route path="/profile"           element={<Profile />} />
           <Route path="*"                  element={<Home />} />
         </Routes>
       </main>

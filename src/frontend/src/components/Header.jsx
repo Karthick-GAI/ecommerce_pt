@@ -50,7 +50,9 @@ export default function Header() {
               <>
                 <Link to="/orders" style={styles.navLink}>My Orders</Link>
                 <div style={styles.userMenu}>
-                  <span style={styles.userName}>{user.first_name || user.email?.split('@')[0]}</span>
+                  <Link to="/profile" style={styles.userNameLink}>
+                    {user.first_name || user.email?.split('@')[0]}
+                  </Link>
                   <button onClick={logout} style={styles.logoutBtn}>Sign out</button>
                 </div>
               </>
@@ -115,6 +117,10 @@ const styles = {
   },
   userName: {
     fontSize: '0.875rem', fontWeight: 600, color: 'var(--text)',
+  },
+  userNameLink: {
+    fontSize: '0.875rem', fontWeight: 600, color: 'var(--primary)',
+    textDecoration: 'none',
   },
   logoutBtn: {
     background: 'none', border: 'none', color: 'var(--muted)',
