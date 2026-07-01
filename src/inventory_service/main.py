@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from database import engine, Base
-from routes import inventory_routes, alert_routes, alert_rule_routes
+from routes import inventory_routes, alert_routes, alert_rule_routes, forecast_routes
 
 Base.metadata.create_all(bind=engine)
 
@@ -20,6 +20,8 @@ async def lifespan(app: FastAPI):
     try:
         seed_default_rules(db)
         run_initial_alert_scan(db)
+        from forecast_engine import init_forecast_service
+        init_forecast_service(db)
     finally:
         db.close()
     yield
@@ -45,6 +47,7 @@ app.add_middleware(
 app.include_router(inventory_routes.router)
 app.include_router(alert_routes.router)
 app.include_router(alert_rule_routes.router)
+app.include_router(forecast_routes.router)
 
 
 @app.get("/", include_in_schema=False)

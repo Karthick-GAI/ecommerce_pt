@@ -75,12 +75,8 @@ def _duration(s: ShoppingSession) -> float | None:
 @router.post("", status_code=201)
 def create_session(payload: SessionCreate, db: Session = Depends(get_db)):
     """Start a new shopping session. customer_id is optional for anonymous browsing."""
-    if payload.customer_id:
-        customer = db.query(Customer).filter(
-            Customer.user_id == payload.customer_id
-        ).first()
-        if not customer:
-            raise HTTPException(status_code=404, detail="Customer not found")
+    # customer_id is optional and not validated against the customers table —
+    # registered app users (user_management UUIDs) are not in the dataset customers table.
 
     session = ShoppingSession(
         customer_id = payload.customer_id,

@@ -12,16 +12,44 @@ const SORT_OPTIONS = [
 ]
 
 const CATEGORIES = [
-  'Electronics', 'Clothing', 'Books', 'Home', 'Sports',
-  'Beauty', 'Automotive', 'Toys', 'Grocery', 'Furniture',
+  'Electronics', 'Clothing', 'Books', 'Home & Kitchen', 'Sports & Fitness',
+  'Beauty', 'Baby Products', 'Stationery', 'Toys & Games',
 ]
+
+function ParsedFilterBanner({ filters }) {
+  if (!filters) return null
+  const chips = []
+  if (filters.category)    chips.push({ label: 'Category', value: filters.category })
+  if (filters.subcategory) chips.push({ label: 'Type',     value: filters.subcategory })
+  if (filters.brand)       chips.push({ label: 'Brand',    value: filters.brand })
+  if (filters.max_price)   chips.push({ label: 'Max price', value: `₹${filters.max_price.toLocaleString()}` })
+  if (filters.min_price)   chips.push({ label: 'Min price', value: `₹${filters.min_price.toLocaleString()}` })
+  if (filters.keywords && filters.keywords !== filters.query)
+    chips.push({ label: 'Keywords', value: filters.keywords })
+  if (chips.length === 0)  return null
+
+  return (
+    <div style={styles.filterBanner}>
+      <span style={styles.filterBannerIcon}>✨</span>
+      <span style={styles.filterBannerLabel}>AI understood:</span>
+      {chips.map(c => (
+        <span key={c.label} style={styles.filterChip}>
+          <span style={styles.filterChipKey}>{c.label}</span>
+          <span style={styles.filterChipVal}>{c.value}</span>
+        </span>
+      ))}
+    </div>
+  )
+}
 
 export default function Products() {
   const [params, setParams] = useSearchParams()
-  const [products, setProducts]   = useState([])
-  const [total, setTotal]         = useState(0)
-  const [loading, setLoading]     = useState(true)
-  const [page, setPage]           = useState(1)
+  const [products, setProducts]       = useState([])
+  const [total, setTotal]             = useState(0)
+  const [loading, setLoading]         = useState(true)
+  const [page, setPage]               = useState(1)
+  const [parsedFilters, setParsedFilters] = useState(null)
+  const [searchMode, setSearchMode]   = useState('smart') // 'smart' | 'keyword'
 
   const q        = params.get('q') || ''
   const category = params.get('category') || ''
@@ -31,31 +59,37 @@ export default function Products() {
 
   const load = useCallback(async (pg = 1) => {
     setLoading(true)
+    setParsedFilters(null)
     try {
       const apiParams = { page: pg, limit: 24 }
-
-      if (q)        apiParams.q        = q
       if (category) apiParams.category = category
       if (minPrice) apiParams.min_price = minPrice
       if (maxPrice) apiParams.max_price = maxPrice
 
-      apiParams.sort_by = sortBy
-
       let res
-      if (q) {
-        res = await productsApi.search(q, apiParams)
-      } else {
+      if (!q) {
+        apiParams.sort_by = sortBy
         res = await productsApi.list(apiParams)
+      } else if (searchMode === 'smart') {
+        res = await productsApi.semanticSearch(q, { page: pg, limit: 24 })
+        if (res.data.parsed_filters) setParsedFilters(res.data.parsed_filters)
+      } else {
+        apiParams.q = q
+        apiParams.sort_by = sortBy
+        res = await productsApi.search(q, apiParams)
       }
 
       const data = res.data
       setProducts(data.results || data.products || [])
       setTotal(data.total || 0)
       setPage(pg)
+    } catch {
+      setProducts([])
+      setTotal(0)
     } finally {
       setLoading(false)
     }
-  }, [q, category, sortBy, minPrice, maxPrice])
+  }, [q, category, sortBy, minPrice, maxPrice, searchMode])
 
   useEffect(() => { load(1) }, [load])
 
@@ -80,15 +114,41 @@ export default function Products() {
             </h1>
             {!loading && <p style={{ color: 'var(--muted)', fontSize: '0.875rem', marginTop: 4 }}>{total.toLocaleString()} products</p>}
           </div>
-          <select
-            className="input"
-            style={{ width: 'auto', height: 40 }}
-            value={sortBy}
-            onChange={e => setFilter('sort_by', e.target.value)}
-          >
-            {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {/* Search mode toggle — only shown when there's a query */}
+            {q && (
+              <div style={styles.modeToggle}>
+                <button
+                  style={{ ...styles.modeBtn, ...(searchMode === 'smart' ? styles.modeBtnActive : {}) }}
+                  onClick={() => setSearchMode('smart')}
+                  title="Natural language search — AI understands intent and finds semantically similar products"
+                >
+                  ✨ Smart Search
+                </button>
+                <button
+                  style={{ ...styles.modeBtn, ...(searchMode === 'keyword' ? styles.modeBtnActive : {}) }}
+                  onClick={() => setSearchMode('keyword')}
+                  title="Exact keyword match across name, brand, description"
+                >
+                  🔤 Keyword
+                </button>
+              </div>
+            )}
+            {searchMode === 'keyword' && (
+              <select
+                className="input"
+                style={{ width: 'auto', height: 40 }}
+                value={sortBy}
+                onChange={e => setFilter('sort_by', e.target.value)}
+              >
+                {SORT_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            )}
+          </div>
         </div>
+
+        {/* AI parsed-filter banner */}
+        {searchMode === 'smart' && <ParsedFilterBanner filters={parsedFilters} />}
 
         <div style={styles.layout}>
           {/* Sidebar filters */}
@@ -217,4 +277,32 @@ const styles = {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     gap: 16, marginTop: 32, paddingTop: 24, borderTop: '1px solid var(--border)',
   },
+  modeToggle: {
+    display: 'flex', borderRadius: 8, overflow: 'hidden',
+    border: '1px solid var(--border)',
+  },
+  modeBtn: {
+    padding: '8px 14px', background: 'none', border: 'none',
+    fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer',
+    color: 'var(--muted)', whiteSpace: 'nowrap',
+    transition: 'background .15s, color .15s',
+  },
+  modeBtnActive: {
+    background: 'var(--primary)', color: '#fff', fontWeight: 700,
+  },
+  filterBanner: {
+    display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8,
+    background: 'rgba(80,70,229,.06)', border: '1px solid rgba(80,70,229,.18)',
+    borderRadius: 10, padding: '10px 16px', marginBottom: 20,
+    fontSize: '0.85rem',
+  },
+  filterBannerIcon: { fontSize: '1rem' },
+  filterBannerLabel: { fontWeight: 700, color: 'var(--primary)', marginRight: 4 },
+  filterChip: {
+    display: 'inline-flex', alignItems: 'center', gap: 4,
+    background: 'rgba(80,70,229,.12)', borderRadius: 999,
+    padding: '2px 10px', fontSize: '0.8rem',
+  },
+  filterChipKey: { color: 'var(--muted)', fontWeight: 500 },
+  filterChipVal: { color: 'var(--primary)', fontWeight: 700 },
 }

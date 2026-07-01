@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { productsApi, recommendationsApi } from '../api/index.js'
+import { productsApi, recommendationsApi, interactionsApi } from '../api/index.js'
 import { useCart } from '../store/CartContext.jsx'
+import { useAuth } from '../store/AuthContext.jsx'
 import { useToast } from '../store/ToastContext.jsx'
 import ProductCard from '../components/ProductCard.jsx'
+import { productImageUrl } from '../utils/productImage.js'
 
 function normalizeRec(item) {
   const disc = (item.discount_pct || 0) / 100
@@ -11,13 +13,14 @@ function normalizeRec(item) {
     id:              item.product_id,
     name:            item.name,
     brand:           item.brand || '',
+    category:        item.category || '',
+    subcategory:     item.subcategory || '',
     price:           item.price || 0,
     effective_price: item.price * (1 - disc),
     discount_pct:    item.discount_pct || 0,
     rating_avg:      item.rating_avg || 0,
     rating_count:    0,
     in_stock:        (item.stock ?? 1) > 0,
-    primary_image:   null,
   }
 }
 
@@ -25,6 +28,7 @@ export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { addItem } = useCart()
+  const { user } = useAuth()
   const toast = useToast()
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -34,7 +38,21 @@ export default function ProductDetail() {
   const [boughtTogether, setBoughtTogether] = useState([])
 
   useEffect(() => {
-    productsApi.get(id).then(r => setProduct(r.data)).catch(() => navigate('/products')).finally(() => setLoading(false))
+    productsApi.get(id)
+      .then(r => {
+        setProduct(r.data)
+        // Log view interaction for recommendation engine (fire-and-forget)
+        if (user?.id) {
+          interactionsApi.log({
+            customer_id: user.id,
+            product_id: id,
+            interaction_type: 'view',
+            source: 'direct',
+          }).catch(() => {})
+        }
+      })
+      .catch(() => navigate('/products'))
+      .finally(() => setLoading(false))
     // Load recommendation sections in parallel, silently ignore failures
     recommendationsApi.similar(id, { strategy: 'both', limit: 6 })
       .then(r => setSimilar((r.data.similar || []).map(normalizeRec)))
@@ -49,6 +67,14 @@ export default function ProductDetail() {
     try {
       await addItem(product, qty)
       toast(`${product.name.slice(0, 30)}… added to cart`, 'success')
+      if (user?.id) {
+        interactionsApi.log({
+          customer_id: user.id,
+          product_id: product.id,
+          interaction_type: 'add_to_cart',
+          source: 'direct',
+        }).catch(() => {})
+      }
     } catch {
       toast('Could not add item — please try again', 'error')
     } finally {
@@ -88,7 +114,7 @@ export default function ProductDetail() {
           <div style={styles.imgSection}>
             <div style={styles.imgWrap}>
               <img
-                src={product.primary_image || `https://picsum.photos/seed/${product.id}/600/500`}
+                src={productImageUrl(product, 600, 500)}
                 alt={product.name}
                 style={styles.img}
               />

@@ -14,6 +14,7 @@ from recommenders.content_based import get_similar_by_vector, get_similar_by_att
 from recommenders.trending import get_trending, get_top_viewed, get_new_arrivals, get_top_deals
 from recommenders.hybrid import get_personalized, get_homepage_feed
 from recommenders.utils import merge_ranked, deduplicate
+from feedback_engine import apply_adaptation, get_adaptation
 
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 
@@ -42,12 +43,12 @@ _reccats_lock   = threading.Lock()
 def homepage_feed(customer_id: str, db: Session = Depends(get_db)):
     """
     Full personalised homepage with multiple recommendation sections.
-    Section count and strategy adapt to the customer's interaction depth.
-    Cached per customer for 5 minutes (6 expensive DB sub-queries saved on hit).
+    Works for both dataset customers and app-registered users.
+    Cached per customer for 5 minutes.
     """
     customer = db.query(Customer).filter(Customer.user_id == customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found")
+    # Don't 404 for app-registered users — fall through to interaction-based personalization.
+    customer_name = f"{customer.first_name} {customer.last_name}" if customer else "there"
 
     with _homepage_lock:
         if customer_id in _homepage_cache:
@@ -56,7 +57,7 @@ def homepage_feed(customer_id: str, db: Session = Depends(get_db)):
     sections = get_homepage_feed(db, customer_id)
     result = {
         "customer_id":    customer_id,
-        "customer_name":  f"{customer.first_name} {customer.last_name}",
+        "customer_name":  customer_name,
         "sections":       sections,
         "total_sections": len(sections),
         "generated_at":   str(datetime.now(timezone.utc)),
@@ -76,18 +77,32 @@ def personalized(
     exclude_purchased: bool = Query(True, description="Exclude already-purchased products"),
     db: Session             = Depends(get_db),
 ):
-    """Flat ranked list of personalised recommendations for a customer."""
+    """
+    Flat ranked list of personalised recommendations for a customer.
+    Results are post-processed by the customer's FeedbackAdaptation weights:
+    thumbed-up categories rise, thumbed-down categories fall, blocked products are removed.
+    """
     customer = db.query(Customer).filter(Customer.user_id == customer_id).first()
-    if not customer:
-        raise HTTPException(status_code=404, detail="Customer not found")
+    customer_name = f"{customer.first_name} {customer.last_name}" if customer else "there"
 
-    recs = get_personalized(db, customer_id, limit=limit,
+    # Generate 2× the requested limit so blocking/filtering still returns enough items
+    recs = get_personalized(db, customer_id, limit=limit * 2,
                             exclude_purchased=exclude_purchased)
+
+    # Apply feedback adaptation (re-rank + remove blocked products)
+    adaptation = get_adaptation(db, customer_id)
+    recs = apply_adaptation(recs, adaptation)[:limit]
+
+    adapted = adaptation is not None and (
+        bool(adaptation.category_boosts) or bool(adaptation.blocked_products)
+    )
+
     return {
-        "customer_id":   customer_id,
-        "customer_name": f"{customer.first_name} {customer.last_name}",
-        "count":         len(recs),
-        "recommendations": recs,
+        "customer_id":      customer_id,
+        "customer_name":    customer_name,
+        "count":            len(recs),
+        "feedback_adapted": adapted,
+        "recommendations":  recs,
     }
 
 

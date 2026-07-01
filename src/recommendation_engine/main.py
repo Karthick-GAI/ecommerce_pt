@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from database import engine, Base
-from routes import recommendation_routes, interaction_routes, profile_routes, evaluation_routes
+from routes import recommendation_routes, interaction_routes, profile_routes, evaluation_routes, feedback_routes
 
 Base.metadata.create_all(bind=engine)
 
@@ -62,6 +62,7 @@ app.include_router(recommendation_routes.router)
 app.include_router(interaction_routes.router)
 app.include_router(profile_routes.router)
 app.include_router(evaluation_routes.router)
+app.include_router(feedback_routes.router)
 
 
 @app.get("/", include_in_schema=False)

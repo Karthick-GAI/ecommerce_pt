@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { recommendationsApi } from '../api/index.js'
+import { recommendationsApi, interactionsApi } from '../api/index.js'
 import { useAuth } from '../store/AuthContext.jsx'
 import ProductCard from '../components/ProductCard.jsx'
 
@@ -23,17 +23,17 @@ function normalize(item) {
     name:           item.name,
     brand:          item.brand || '',
     category:       item.category || '',
+    subcategory:    item.subcategory || '',
     price:          item.price || 0,
     effective_price: item.price * (1 - disc),
     discount_pct:   item.discount_pct || 0,
     rating_avg:     item.rating_avg || 0,
     rating_count:   0,
     in_stock:       (item.stock ?? 1) > 0,
-    primary_image:  null,
   }
 }
 
-function RecSection({ title, badge, items, viewAllPath }) {
+function RecSection({ title, badge, items, viewAllPath, onProductClick }) {
   const navigate = useNavigate()
   if (!items || items.length === 0) return null
   return (
@@ -51,7 +51,11 @@ function RecSection({ title, badge, items, viewAllPath }) {
           )}
         </div>
         <div className="product-grid">
-          {items.map(p => <ProductCard key={p.id} product={p} />)}
+          {items.map(p => (
+            <div key={p.id} onClick={() => onProductClick?.(p.id)}>
+              <ProductCard product={p} />
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -63,6 +67,17 @@ export default function Home() {
   const navigate = useNavigate()
   const [sections, setSections] = useState([])   // [{title, badge, items}]
   const [loading, setLoading]   = useState(true)
+
+  function handleProductClick(productId) {
+    if (user?.id) {
+      interactionsApi.log({
+        customer_id: user.id,
+        product_id: productId,
+        interaction_type: 'click',
+        source: 'homepage',
+      }).catch(() => {})
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -90,10 +105,11 @@ export default function Home() {
 
       // Global discovery — works for everyone
       try {
-        const [trendRes, dealRes, arrivalRes] = await Promise.all([
+        const [trendRes, dealRes, arrivalRes, topViewedRes] = await Promise.all([
           recommendationsApi.trending({ days: 30, limit: 8 }),
           recommendationsApi.deals({ limit: 8 }),
           recommendationsApi.newArrivals({ limit: 8 }),
+          recommendationsApi.topViewed({ days: 7, limit: 8 }),
         ])
         if (cancelled) return
         setSections([
@@ -101,6 +117,12 @@ export default function Home() {
             title: 'Trending Now',
             badge: 'Hot',
             items: (trendRes.data.trending || []).map(normalize),
+            viewAllPath: '/products',
+          },
+          {
+            title: 'Most Viewed',
+            badge: 'Popular',
+            items: (topViewedRes.data.top_viewed || []).map(normalize),
             viewAllPath: '/products',
           },
           {
@@ -191,6 +213,7 @@ export default function Home() {
               badge={sec.badge}
               items={sec.items}
               viewAllPath={sec.viewAllPath}
+              onProductClick={handleProductClick}
             />
           </div>
         ))

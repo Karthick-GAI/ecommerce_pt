@@ -1,5 +1,6 @@
 import { useCart } from '../store/CartContext.jsx'
 import { useNavigate } from 'react-router-dom'
+import { productImageUrl } from '../utils/productImage.js'
 
 export default function CartDrawer({ open, onClose }) {
   const { items, count, subtotal, updateQty, removeItem, loading } = useCart()
@@ -32,7 +33,7 @@ export default function CartDrawer({ open, onClose }) {
             items.map(item => (
               <div key={item.product_id} style={styles.item}>
                 <img
-                  src={item.image_url || `https://picsum.photos/seed/${item.product_id}/80/80`}
+                  src={item.image_url || productImageUrl({ id: item.product_id, category: item.category, subcategory: item.subcategory }, 80, 80)}
                   alt={item.product_name}
                   style={styles.itemImg}
                 />

@@ -129,7 +129,7 @@ async def inventory_stream(request: Request):
                         .all()
                     )
                     for m in new_movements:
-                        yield "data: " + json.dumps({
+                        yield "event: inventory_change\ndata: " + json.dumps({
                             "type":             "inventory_change",
                             "product_id":       m.product_id,
                             "product_name":     m.product_name,
@@ -150,7 +150,7 @@ async def inventory_stream(request: Request):
                         .all()
                     )
                     for a in new_alerts:
-                        yield "data: " + json.dumps({
+                        yield "event: low_stock_alert\ndata: " + json.dumps({
                             "type":          "low_stock_alert",
                             "alert_id":      a.id,
                             "product_id":    a.product_id,

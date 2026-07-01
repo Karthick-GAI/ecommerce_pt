@@ -87,6 +87,9 @@ def chat(payload: ChatRequest, db: Session = Depends(get_db)):
             category=p.category,
             effective_price=round(p.price * (1 - p.discount_pct / 100), 2),
             in_stock=p.inventory_count > 0,
+            primary_image=p.primary_image,
+            rating_avg=p.rating_avg,
+            rating_count=p.rating_count,
         )
         for p, _ in results[:5]
     ]

@@ -8,8 +8,11 @@ import Checkout from './pages/Checkout.jsx'
 import Orders from './pages/Orders.jsx'
 import Auth from './pages/Auth.jsx'
 import Inventory from './pages/Inventory.jsx'
+import Forecasting from './pages/Forecasting.jsx'
 import Guardrails from './pages/Guardrails.jsx'
 import Profile from './pages/Profile.jsx'
+import ShoppingAssistant from './pages/ShoppingAssistant.jsx'
+import Recommendations from './pages/Recommendations.jsx'
 
 export default function App() {
   return (
@@ -24,8 +27,11 @@ export default function App() {
           <Route path="/orders"            element={<Orders />} />
           <Route path="/auth"              element={<Auth />} />
           <Route path="/inventory"         element={<Inventory />} />
+          <Route path="/forecasting"       element={<Forecasting />} />
           <Route path="/guardrails"        element={<Guardrails />} />
           <Route path="/profile"           element={<Profile />} />
+          <Route path="/assistant"         element={<ShoppingAssistant />} />
+          <Route path="/recommendations"   element={<Recommendations />} />
           <Route path="*"                  element={<Home />} />
         </Routes>
       </main>

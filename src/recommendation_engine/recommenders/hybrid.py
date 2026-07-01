@@ -11,7 +11,7 @@ from models import Product, UserPreferenceProfile
 from .collaborative import (
     get_user_based_cf, get_cf_from_browsing, get_user_purchase_count,
 )
-from .content_based import get_similar_for_profile, get_category_picks
+from .content_based import get_similar_for_profile, get_category_picks, get_similar_by_attributes
 from .trending import get_trending, get_top_viewed, get_new_arrivals, get_top_deals
 from .utils import merge_ranked, deduplicate, fmt_product
 
@@ -25,23 +25,62 @@ def _get_profile(db: Session, customer_id: str) -> UserPreferenceProfile | None:
 
 
 def _browsing_count(db: Session, customer_id: str) -> int:
-    sql = text("""
+    # Dataset browsing_events
+    sql1 = text("""
         SELECT COUNT(*) FROM browsing_events
         WHERE user_id = :cid
           AND event_type IN ('purchase', 'add_to_cart', 'wishlist')
     """)
-    return int(db.execute(sql, {"cid": customer_id}).scalar() or 0)
+    c1 = int(db.execute(sql1, {"cid": customer_id}).scalar() or 0)
+    # App user rec_interactions
+    sql2 = text("""
+        SELECT COUNT(*) FROM rec_interactions
+        WHERE customer_id = :cid
+          AND interaction_type IN ('purchase', 'add_to_cart', 'wishlist', 'click', 'view')
+    """)
+    c2 = int(db.execute(sql2, {"cid": customer_id}).scalar() or 0)
+    return c1 + c2
 
 
 def _purchased_ids(db: Session, customer_id: str) -> list[str]:
-    sql = text("""
+    # Dataset orders
+    sql1 = text("""
         SELECT DISTINCT item.product_id
         FROM orders o,
         LATERAL jsonb_to_recordset(o.cart_activity)
             AS item(product_id text, quantity int, unit_price float)
         WHERE o.user_id = :cid
     """)
-    return [r[0] for r in db.execute(sql, {"cid": customer_id}).fetchall()]
+    ids1 = [r[0] for r in db.execute(sql1, {"cid": customer_id}).fetchall()]
+    # Checkout service orders
+    sql2 = text("""
+        SELECT DISTINCT coi.product_id
+        FROM checkout_order_items coi
+        JOIN checkout_orders co ON co.id = coi.order_id
+        WHERE co.customer_id = :cid
+          AND co.status IN ('confirmed', 'paid', 'shipped', 'delivered')
+    """)
+    ids2 = [r[0] for r in db.execute(sql2, {"cid": customer_id}).fetchall()]
+    return list(set(ids1 + ids2))
+
+
+def _checkout_purchased_products(db: Session, customer_id: str) -> list:
+    """Return Product ORM objects bought through the checkout service."""
+    sql = text("""
+        SELECT DISTINCT p.id
+        FROM checkout_order_items coi
+        JOIN checkout_orders co ON co.id = coi.order_id
+        JOIN products p ON p.id = coi.product_id
+        WHERE co.customer_id = :cid
+          AND co.status IN ('confirmed', 'paid', 'shipped', 'delivered')
+          AND p.is_active = true
+        ORDER BY co.created_at DESC
+        LIMIT 5
+    """)
+    product_ids = [r[0] for r in db.execute(sql, {"cid": customer_id}).fetchall()]
+    if not product_ids:
+        return []
+    return db.query(Product).filter(Product.id.in_(product_ids)).all()
 
 
 # ── Personalized recommendations ─────────────────────────────────────────────
@@ -129,7 +168,16 @@ def get_homepage_feed(db: Session, customer_id: str) -> list[dict]:
                 global_seen.add(r["product_id"])
             sections.append({"title": title, "strategy": strategy, "products": unique})
 
-    # Section 1: Personalised
+    # Section 1: Content-similar to recently purchased products (works immediately after 1 purchase)
+    checkout_products = _checkout_purchased_products(db, customer_id)
+    for bought_product in checkout_products[:2]:
+        similar = get_similar_by_attributes(
+            db, bought_product, limit=10, exclude_ids=_excl()
+        )
+        label = bought_product.name[:40]
+        _add_section(f"More like '{label}'", "content_purchase", similar)
+
+    # Section 2: Personalised CF
     if purchase_count >= 5:
         cf_recs = get_user_based_cf(db, customer_id, limit=30)
         _add_section("Recommended For You", "personalized", cf_recs[:10])

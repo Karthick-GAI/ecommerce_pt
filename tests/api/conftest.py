@@ -3,12 +3,19 @@ import pytest
 from fastapi.testclient import TestClient
 
 BASE_URLS = {
-    "user_management": os.getenv("USER_MGMT_URL", "http://localhost:8001"),
-    "product_catalogue": os.getenv("PRODUCT_CAT_URL", "http://localhost:8002"),
-    "checkout_service": os.getenv("CHECKOUT_URL", "http://localhost:8003"),
-    "inventory_service": os.getenv("INVENTORY_URL", "http://localhost:8005"),
-    "seller_portal": os.getenv("SELLER_PORTAL_URL", "http://localhost:8011"),
-    "shopping_assistant": os.getenv("SHOPPING_ASSISTANT_URL", "http://localhost:8012"),
+    "user_management":          os.getenv("USER_MGMT_URL",         "http://localhost:8000"),
+    "product_catalogue":        os.getenv("PRODUCT_CAT_URL",        "http://localhost:8001"),
+    "shopping_assistant":       os.getenv("SHOPPING_ASSISTANT_URL", "http://localhost:8002"),
+    "checkout_service":         os.getenv("CHECKOUT_URL",           "http://localhost:8003"),
+    "order_management":         os.getenv("ORDER_MGMT_URL",         "http://localhost:8004"),
+    "inventory_service":        os.getenv("INVENTORY_URL",          "http://localhost:8005"),
+    "recommendation_engine":    os.getenv("RECOMMENDATION_URL",     "http://localhost:8006"),
+    "tool_calling_agent":       os.getenv("TOOL_CALLING_URL",       "http://localhost:8007"),
+    "session_service":          os.getenv("SESSION_URL",            "http://localhost:8008"),
+    "payment_shipping_service": os.getenv("PAYMENT_URL",            "http://localhost:8009"),
+    "guardrails_service":       os.getenv("GUARDRAILS_URL",         "http://localhost:8010"),
+    "multi_agent_system":       os.getenv("MULTI_AGENT_URL",        "http://localhost:8011"),
+    "seller_portal":            os.getenv("SELLER_PORTAL_URL",      "http://localhost:8012"),
 }
 
 TEST_USER = {

@@ -13,6 +13,7 @@ export default defineConfig({
       '/api/orders':     { target: 'http://localhost:8004', rewrite: p => p.replace(/^\/api\/orders/, '') },
       '/api/sessions':   { target: 'http://localhost:8008', rewrite: p => p.replace(/^\/api\/sessions/, '') },
       '/api/agent':      { target: 'http://localhost:8007', rewrite: p => p.replace(/^\/api\/agent/, '') },
+      '/imgproxy':       { target: 'http://localhost:8001', changeOrigin: false },
     }
   }
 })

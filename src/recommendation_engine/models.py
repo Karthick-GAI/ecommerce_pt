@@ -135,3 +135,40 @@ class UserPreferenceProfile(Base):
     total_interactions = Column(Integer, default=0)
     last_computed_at = Column(DateTime, server_default=func.now())
     updated_at       = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+# ── Feedback loop tables ──────────────────────────────────────────────────────
+
+class ExplicitFeedback(Base):
+    """Single thumbs-up / thumbs-down / not-interested event from a customer."""
+    __tablename__ = "rec_explicit_feedback"
+    id            = Column(String, primary_key=True, default=_gen_id)
+    customer_id   = Column(String, nullable=False, index=True)
+    product_id    = Column(String, nullable=False, index=True)
+    product_name  = Column(String)
+    category      = Column(String)
+    brand         = Column(String)
+    feedback_type = Column(String, nullable=False)   # thumbs_up | thumbs_down | not_interested
+    rec_strategy  = Column(String)                   # which recommender surfaced this item
+    created_at    = Column(DateTime, server_default=func.now())
+
+
+class FeedbackAdaptation(Base):
+    """
+    Per-customer learned adaptation weights.
+    Updated in real-time each time explicit feedback is received.
+    Applied as a post-processing step to re-rank recommendations.
+    """
+    __tablename__ = "rec_feedback_adaptations"
+    id                = Column(String, primary_key=True, default=_gen_id)
+    customer_id       = Column(String, nullable=False, unique=True, index=True)
+    # category/brand multipliers: > 1.0 = boost, < 1.0 = penalty, 1.0 = neutral
+    category_boosts   = Column(JSONB)   # {"Electronics": 1.5, "Books": 0.75}
+    brand_boosts      = Column(JSONB)   # {"Samsung": 1.3, "Apple": 0.9}
+    # products permanently hidden by the customer
+    blocked_products  = Column(JSONB)   # ["prod_id1", "prod_id2"]
+    # per-strategy score adjustment (0.05 per positive/negative event)
+    strategy_weights  = Column(JSONB)   # {"personalized": 0.6, "trending": 0.45}
+    total_thumbs_up   = Column(Integer, default=0)
+    total_thumbs_down = Column(Integer, default=0)
+    last_updated      = Column(DateTime, server_default=func.now())

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../store/AuthContext.jsx'
 import { useCart } from '../store/CartContext.jsx'
 import CartDrawer from './CartDrawer.jsx'
+import NotificationBell from './NotificationBell.jsx'
 
 export default function Header() {
   const { user, logout } = useAuth()
@@ -43,7 +44,10 @@ export default function Header() {
           {/* Actions */}
           <nav style={styles.nav}>
             <Link to="/products" style={styles.navLink}>Browse</Link>
+            <Link to="/recommendations" style={styles.navLink}>For You</Link>
+            <Link to="/assistant" style={styles.navLink}>Assistant</Link>
             <Link to="/inventory" style={styles.navLink}>Ops</Link>
+            <Link to="/forecasting" style={styles.navLink}>Forecast</Link>
             <Link to="/guardrails" style={styles.navLink}>Security</Link>
 
             {user ? (
@@ -59,6 +63,8 @@ export default function Header() {
             ) : (
               <Link to="/auth" className="btn btn-outline btn-sm">Sign in</Link>
             )}
+
+            <NotificationBell />
 
             <button
               onClick={() => setCartOpen(true)}

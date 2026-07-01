@@ -1,48 +1,49 @@
 # AI-Powered E-Commerce Platform
 
-A capstone project demonstrating microservices architecture with AI integration. 13 independent FastAPI services covering the full e-commerce lifecycle — user auth, product catalogue with vector search, AI shopping assistant (RAG), hybrid recommendations, checkout with idempotency, and a B2B seller portal.
+A capstone project demonstrating microservices architecture with AI integration. 13 independent FastAPI services covering the full e-commerce lifecycle — user auth, product catalogue with vector search, AI shopping assistant (RAG), hybrid recommendations with feedback adaptation, checkout with idempotency, demand forecasting, anomaly detection, and a B2B seller portal.
 
 ---
 
 ## Table of Contents
 
 1. [Architecture at a Glance](#architecture-at-a-glance)
-2. [Service Catalog](#service-catalog)
-3. [Prerequisites](#prerequisites)
-4. [Project Setup](#project-setup)
+2. [Capstone AI Features](#capstone-ai-features)
+3. [Service Catalog](#service-catalog)
+4. [Prerequisites](#prerequisites)
+5. [Project Setup](#project-setup)
    - [Step 1 — Clone and configure environment](#step-1--clone-and-configure-environment)
    - [Step 2 — Database setup](#step-2--database-setup)
    - [Step 3 — Install dependencies](#step-3--install-dependencies)
    - [Step 4 — Seed product data](#step-4--seed-product-data)
    - [Step 5 — Start services](#step-5--start-services)
    - [Step 6 — Verify all services are healthy](#step-6--verify-all-services-are-healthy)
-5. [Minimal Quick Start (no PostgreSQL needed)](#minimal-quick-start-no-postgresql-needed)
-6. [End-to-End Usage Examples](#end-to-end-usage-examples)
+6. [Minimal Quick Start (no PostgreSQL needed)](#minimal-quick-start-no-postgresql-needed)
+7. [End-to-End Usage Examples](#end-to-end-usage-examples)
    - [Example 1 — Register, login, and manage your profile](#example-1--register-login-and-manage-your-profile)
    - [Example 2 — Browse and search the product catalogue](#example-2--browse-and-search-the-product-catalogue)
    - [Example 3 — AI Shopping Assistant (RAG pipeline)](#example-3--ai-shopping-assistant-rag-pipeline)
    - [Example 4 — Checkout with idempotency](#example-4--checkout-with-idempotency)
-7. [Running Tests](#running-tests)
-8. [Project Structure](#project-structure)
-9. [Troubleshooting](#troubleshooting)
+8. [Running Tests](#running-tests)
+9. [Project Structure](#project-structure)
+10. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Architecture at a Glance
 
 ```
-[React 18 + Vite  :5173]
+[React 18 + Vite  :3000]
          │
          ▼
 ┌────────────────────────────────────────────────────────────────┐
 │                    FastAPI Microservices                        │
-│  user_management :8001  │  product_catalogue :8002             │
-│  checkout        :8003  │  recommendation    :8004             │
-│  inventory       :8005  │  order_management  :8006             │
-│  session         :8007  │  payment_shipping  :8008             │
-│  guardrails      :8009  │  multi_agent       :8010             │
-│  seller_portal   :8011  │  shopping_assistant:8012             │
-│  tool_calling    :8013                                         │
+│  user_management       :8000  │  product_catalogue      :8001  │
+│  shopping_assistant    :8002  │  checkout_service       :8003  │
+│  order_management      :8004  │  inventory_service      :8005  │
+│  recommendation_engine :8006  │  tool_calling_agent     :8007  │
+│  session_service       :8008  │  payment_shipping       :8009  │
+│  guardrails_service    :8010  │  multi_agent_system     :8011  │
+│  seller_portal         :8012                                   │
 └────────────────────────────────────────────────────────────────┘
          │                          │
          ▼                          ▼
@@ -56,23 +57,89 @@ A capstone project demonstrating microservices architecture with AI integration.
 
 ---
 
+## Capstone AI Features
+
+Five intelligence layers added on top of the core e-commerce platform:
+
+### 1. Demand Forecasting
+**Service**: `inventory_service` (:8005) — routes `/forecast/*`
+
+Ridge Regression with Fourier feature engineering (7-dimensional: linear trend + weekly/monthly/quarterly seasonality) trained per product category on 90-day rolling demand history. Generates 30-day forecasts with ±1.5×RMSE confidence bands and automatically raises restock alerts when cumulative forecast exceeds current inventory.
+
+```bash
+# Train models for all categories
+curl -X POST http://localhost:8005/forecast/train
+
+# Get 30-day forecast with confidence bands for a category
+curl http://localhost:8005/forecast/category/Electronics
+
+# View restock alerts
+curl http://localhost:8005/forecast/restock-alerts
+```
+
+### 2. Recommendation Feedback Loop
+**Service**: `recommendation_engine` (:8006) — routes `/feedback/*`, `/recommendations/*`
+
+Records explicit user feedback (thumbs_up / thumbs_down / not_interested) and applies per-user category and brand multipliers to scored product candidates using geometric mean `√(cat_boost × brand_boost)`. Blocked products are filtered before returning results.
+
+```bash
+# Submit feedback
+curl -X POST http://localhost:8006/feedback \
+  -H "Content-Type: application/json" \
+  -d '{"customer_id":"cust_1","product_id":"prod_1","feedback_type":"thumbs_up","category":"Electronics","brand":"Sony"}'
+
+# Get adapted recommendations (boosts applied)
+curl http://localhost:8006/recommendations/for/cust_1
+```
+
+### 3. Anomaly Detection (Security SOC)
+**Service**: `guardrails_service` (:8010) — routes `/anomaly/*`
+
+10 statistical detectors covering order amounts (Z-score/IQR), rapid ordering, payment failures, search injection (regex), inventory pricing anomalies, bot behavior, bulk purchases, replay attacks, new-account high-value orders, and inventory drain. Alerts stream to a merchant-facing dashboard via Server-Sent Events (SSE).
+
+```bash
+# Run full detection scan
+curl -X POST http://localhost:8010/anomaly/scan?scan_type=full
+
+# Dashboard KPIs + 24-bar hourly trend
+curl http://localhost:8010/anomaly/dashboard
+
+# Real-time SSE stream
+curl -N http://localhost:8010/anomaly/stream
+
+# Open React SOC dashboard
+open http://localhost:3000/guardrails
+```
+
+### 4. Real-Time Inventory Alerts
+**Service**: `inventory_service` (:8005) — routes `/alerts/*`, `/alert-rules/*`
+
+Rule-based alerts for low-stock, overstock, and reorder thresholds with SSE streaming to the frontend. Alert rules are configurable per product category.
+
+### 5. AI Shopping Assistant
+**Service**: `shopping_assistant` (:8002) — routes `/chat`
+
+7-step RAG pipeline: NL query → LLM intent extraction → text-embedding-3-small → pgvector cosine search → context assembly → gpt-5.4-mini generation → guardrail output check. Maintains multi-turn session context.
+
+---
+
 ## Service Catalog
 
 | Service | Port | Database | Requires Azure OpenAI | Description |
 |---------|------|-----------|-----------------------|-------------|
-| `user_management` | 8001 | SQLite | No | JWT auth, GDPR erasure/export |
-| `product_catalogue` | 8002 | PostgreSQL + pgvector | Yes (embeddings) | Products, search, reviews |
+| `user_management` | 8000 | SQLite | No | JWT auth, GDPR erasure/export |
+| `product_catalogue` | 8001 | PostgreSQL + pgvector | Yes (embeddings) | Products, search, reviews |
+| `shopping_assistant` | 8002 | PostgreSQL | Yes (RAG) | NL query → vector search → GPT |
 | `checkout_service` | 8003 | PostgreSQL | No | Cart, idempotent order placement |
-| `recommendation_engine` | 8004 | PostgreSQL | No | Hybrid CF + content + trending |
-| `inventory_service` | 8005 | PostgreSQL | No | Stock levels, reservations |
-| `order_management` | 8006 | PostgreSQL | No | Order lifecycle, refunds |
-| `session_service` | 8007 | PostgreSQL | No | Browsing events, session tracking |
-| `payment_shipping_service` | 8008 | PostgreSQL | No | Razorpay + Shiprocket integration |
-| `guardrails_service` | 8009 | PostgreSQL | Yes (LLM judge) | AI input/output safety |
-| `multi_agent_system` | 8010 | PostgreSQL | Yes (GPT agents) | Orchestrator + 4 specialist agents |
-| `seller_portal` | 8011 | SQLite | No | B2B KYC onboarding, product approval |
-| `shopping_assistant` | 8012 | PostgreSQL | Yes (RAG) | NL query → vector search → GPT |
-| `tool_calling_agent` | 8013 | PostgreSQL | Yes (function calls) | Structured tool-call agent |
+| `order_management` | 8004 | PostgreSQL | No | Order lifecycle, refunds |
+| `inventory_service` | 8005 | PostgreSQL | No | Stock, forecasting, restock alerts |
+| `recommendation_engine` | 8006 | PostgreSQL | No | Hybrid CF + feedback loop |
+| `tool_calling_agent` | 8007 | PostgreSQL | Yes (function calls) | Structured tool-call agent |
+| `session_service` | 8008 | PostgreSQL | No | Browsing events, session tracking |
+| `payment_shipping_service` | 8009 | PostgreSQL | No | Razorpay + Shiprocket integration |
+| `guardrails_service` | 8010 | PostgreSQL | Yes (LLM judge) | Anomaly detection, AI safety |
+| `multi_agent_system` | 8011 | PostgreSQL | Yes (GPT agents) | Orchestrator + 4 specialist agents |
+| `seller_portal` | 8012 | SQLite | No | B2B KYC onboarding, product approval |
 
 **Interactive API docs** for every service: `http://localhost:<port>/docs`
 
@@ -176,7 +243,7 @@ bash scripts/start_all.sh
 
 # Or start a single service directly
 cd src/user_management
-PYTHONPATH=.. uvicorn main:app --port 8001 --reload
+PYTHONPATH=../.. uvicorn main:app --port 8000 --reload
 ```
 
 Service logs are written to `logs/<service_name>.log`.
@@ -190,7 +257,7 @@ bash scripts/start_all.sh --stop
 ### Step 6 — Verify all services are healthy
 
 ```bash
-for port in 8001 8002 8003 8004 8005 8006 8007 8008 8009 8010 8011 8012 8013; do
+for port in 8000 8001 8002 8003 8004 8005 8006 8007 8008 8009 8010 8011 8012; do
   STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:$port/health)
   echo "Port $port: $STATUS"
 done
@@ -199,10 +266,19 @@ done
 Expected output (all services running):
 
 ```
+Port 8000: 200
 Port 8001: 200
-Port 8002: 200
 ...
-Port 8013: 200
+Port 8012: 200
+```
+
+**Frontend** — start separately:
+
+```bash
+cd src/frontend
+npm install
+npm run dev
+# Opens at http://localhost:3000
 ```
 
 ---
@@ -217,10 +293,10 @@ pip install -r src/user_management/requirements.txt
 
 # 2. Start (SQLite, no PostgreSQL)
 cd src/user_management
-PYTHONPATH=.. uvicorn main:app --port 8001 --reload
+PYTHONPATH=../.. uvicorn main:app --port 8000 --reload
 
 # 3. Open browser
-open http://localhost:8001/docs
+open http://localhost:8000/docs
 ```
 
 The Swagger UI lets you run every endpoint interactively. Continue to Example 1 below for the curl walkthrough.
@@ -235,13 +311,13 @@ All examples use `curl`. Replace `localhost` with your server IP if running remo
 
 ### Example 1 — Register, login, and manage your profile
 
-**Service**: `user_management` at `http://localhost:8001`
+**Service**: `user_management` at `http://localhost:8000`
 **Dependencies**: None (SQLite only)
 
 #### 1a. Register a new account
 
 ```bash
-curl -s -X POST http://localhost:8001/auth/register \
+curl -s -X POST http://localhost:8000/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "email": "priya.sharma@example.com",
@@ -270,7 +346,7 @@ curl -s -X POST http://localhost:8001/auth/register \
 #### 1b. Login and get JWT tokens
 
 ```bash
-curl -s -X POST http://localhost:8001/auth/login \
+curl -s -X POST http://localhost:8000/auth/login \
   -H "Content-Type: application/json" \
   -d '{
     "email": "priya.sharma@example.com",
@@ -282,8 +358,8 @@ curl -s -X POST http://localhost:8001/auth/login \
 
 ```json
 {
-  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfM2Y4YTJiMWM0ZDVlNmY3YSIsInR5cGUiOiJhY2Nlc3MiLCJleHAiOjE3NTAwMDAwMDB9.abc123",
-  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ1c3JfM2Y4YTJiMWM0ZDVlNmY3YSIsInR5cGUiOiJyZWZyZXNoIiwiZXhwIjoxNzUwNjAwMDAwfQ.xyz789",
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "token_type": "bearer"
 }
 ```
@@ -297,7 +373,7 @@ export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 #### 1c. View your profile
 
 ```bash
-curl -s http://localhost:8001/users/me \
+curl -s http://localhost:8000/users/me \
   -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 ```
 
@@ -319,7 +395,7 @@ curl -s http://localhost:8001/users/me \
 #### 1d. Add a shipping address
 
 ```bash
-curl -s -X POST http://localhost:8001/users/me/addresses \
+curl -s -X POST http://localhost:8000/users/me/addresses \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -356,7 +432,7 @@ curl -s -X POST http://localhost:8001/users/me/addresses \
 #### 1e. GDPR — export all personal data
 
 ```bash
-curl -s http://localhost:8001/users/me/data-export \
+curl -s http://localhost:8000/users/me/data-export \
   -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
 ```
 
@@ -386,7 +462,7 @@ curl -s http://localhost:8001/users/me/data-export \
 ```bash
 for i in 1 2 3 4 5 6; do
   curl -s -o /dev/null -w "Attempt $i: HTTP %{http_code}\n" \
-    -X POST http://localhost:8001/auth/login \
+    -X POST http://localhost:8000/auth/login \
     -H "Content-Type: application/json" \
     -d '{"email":"priya.sharma@example.com","password":"Wrong123"}'
 done
@@ -407,7 +483,7 @@ Attempt 6: HTTP 429    ← rate limit kicks in
 
 ### Example 2 — Browse and search the product catalogue
 
-**Service**: `product_catalogue` at `http://localhost:8002`
+**Service**: `product_catalogue` at `http://localhost:8001`
 **Dependencies**: PostgreSQL + pgvector (seed data required)
 
 > Run `bash scripts/seed_products.sh` before this example.
@@ -415,7 +491,7 @@ Attempt 6: HTTP 429    ← rate limit kicks in
 #### 2a. List products with filters
 
 ```bash
-curl -s "http://localhost:8002/products?category=Electronics&price_max=30000&sort_by=rating&limit=3" \
+curl -s "http://localhost:8001/products?category=Electronics&price_max=30000&sort_by=rating&limit=3" \
   | python3 -m json.tool
 ```
 
@@ -441,34 +517,6 @@ curl -s "http://localhost:8002/products?category=Electronics&price_max=30000&sor
       "rating_count": 8420,
       "inventory_count": 150,
       "in_stock": true
-    },
-    {
-      "id": "prod_b2c3d4e5f6a1",
-      "name": "Redmi Note 13 Pro (8GB RAM, 256GB)",
-      "brand": "Redmi",
-      "category": "Electronics",
-      "subcategory": "Smartphones",
-      "price": 24999.0,
-      "discount_pct": 5.0,
-      "effective_price": 23749.05,
-      "rating_avg": 4.2,
-      "rating_count": 5631,
-      "inventory_count": 42,
-      "in_stock": true
-    },
-    {
-      "id": "prod_c3d4e5f6a1b2",
-      "name": "Samsung Galaxy Buds2 Pro",
-      "brand": "Samsung",
-      "category": "Electronics",
-      "subcategory": "Earbuds",
-      "price": 9999.0,
-      "discount_pct": 20.0,
-      "effective_price": 7999.2,
-      "rating_avg": 4.1,
-      "rating_count": 2317,
-      "inventory_count": 28,
-      "in_stock": true
     }
   ]
 }
@@ -477,7 +525,7 @@ curl -s "http://localhost:8002/products?category=Electronics&price_max=30000&sor
 #### 2b. Keyword search
 
 ```bash
-curl -s "http://localhost:8002/search/keyword?q=wireless+headphones&price_max=5000&in_stock=true&limit=2" \
+curl -s "http://localhost:8001/search/keyword?q=wireless+headphones&price_max=5000&in_stock=true&limit=2" \
   | python3 -m json.tool
 ```
 
@@ -495,14 +543,6 @@ curl -s "http://localhost:8002/search/keyword?q=wireless+headphones&price_max=50
       "effective_price": 2099.0,
       "rating_avg": 4.4,
       "in_stock": true
-    },
-    {
-      "id": "prod_e5f6a1b2c3d4",
-      "name": "boAt Rockerz 450 Wireless Headphone",
-      "brand": "boAt",
-      "effective_price": 1299.0,
-      "rating_avg": 4.2,
-      "in_stock": true
     }
   ]
 }
@@ -513,7 +553,7 @@ curl -s "http://localhost:8002/search/keyword?q=wireless+headphones&price_max=50
 This calls `text-embedding-3-small` to embed the query, then runs pgvector cosine similarity — no exact keyword matching needed.
 
 ```bash
-curl -s "http://localhost:8002/search/semantic?q=noise+cancelling+headphones+for+office+calls&limit=3" \
+curl -s "http://localhost:8001/search/semantic?q=noise+cancelling+headphones+for+office+calls&limit=3" \
   | python3 -m json.tool
 ```
 
@@ -522,13 +562,6 @@ curl -s "http://localhost:8002/search/semantic?q=noise+cancelling+headphones+for
 ```json
 {
   "query": "noise cancelling headphones for office calls",
-  "parsed_filters": {
-    "keywords": "noise cancelling headphones office calls",
-    "category": "Electronics",
-    "subcategory": "Headphones",
-    "max_price": null,
-    "features": ["noise cancelling", "microphone"]
-  },
   "total": 3,
   "results": [
     {
@@ -540,26 +573,6 @@ curl -s "http://localhost:8002/search/semantic?q=noise+cancelling+headphones+for
       "rating_avg": 4.7,
       "similarity_score": 0.912,
       "in_stock": true
-    },
-    {
-      "id": "prod_a1b2c3d4e5f7",
-      "name": "Jabra Evolve2 55 UC Wireless Headset",
-      "brand": "Jabra",
-      "category": "Electronics",
-      "effective_price": 19990.0,
-      "rating_avg": 4.5,
-      "similarity_score": 0.884,
-      "in_stock": true
-    },
-    {
-      "id": "prod_b2c3d4e5f6a2",
-      "name": "Bose QuietComfort 45 Headphones",
-      "brand": "Bose",
-      "category": "Electronics",
-      "effective_price": 22490.0,
-      "rating_avg": 4.6,
-      "similarity_score": 0.871,
-      "in_stock": false
     }
   ]
 }
@@ -570,46 +583,15 @@ curl -s "http://localhost:8002/search/semantic?q=noise+cancelling+headphones+for
 #### 2d. Get a product detail page
 
 ```bash
-curl -s http://localhost:8002/products/prod_f6a1b2c3d4e5 \
+curl -s http://localhost:8001/products/prod_f6a1b2c3d4e5 \
   | python3 -m json.tool
-```
-
-**Response** (`200 OK`) — includes specs, images, review summary:
-
-```json
-{
-  "id": "prod_f6a1b2c3d4e5",
-  "name": "Sony WH-1000XM5 Wireless Noise Cancelling Headphones",
-  "brand": "Sony",
-  "category": "Electronics",
-  "subcategory": "Headphones",
-  "description": "Industry-leading noise cancellation with Auto NC Optimizer...",
-  "price": 29990.0,
-  "discount_pct": 16.67,
-  "effective_price": 24990.0,
-  "rating_avg": 4.7,
-  "rating_count": 1248,
-  "inventory_count": 15,
-  "in_stock": true,
-  "specifications": {
-    "Driver Size": "30mm",
-    "Frequency Response": "4Hz–40kHz",
-    "Battery Life": "30 hours",
-    "Bluetooth": "5.2",
-    "Weight": "250g"
-  },
-  "images": [
-    { "url": "/images/sony-wh1000xm5-front.jpg", "is_primary": true }
-  ],
-  "reviews": []
-}
 ```
 
 ---
 
 ### Example 3 — AI Shopping Assistant (RAG pipeline)
 
-**Service**: `shopping_assistant` at `http://localhost:8012`
+**Service**: `shopping_assistant` at `http://localhost:8002`
 **Dependencies**: PostgreSQL + pgvector (seed data required) + Azure OpenAI
 
 The assistant follows a 7-step pipeline per message:
@@ -618,7 +600,7 @@ The assistant follows a 7-step pipeline per message:
 #### 3a. Start a new conversation
 
 ```bash
-curl -s -X POST http://localhost:8012/chat \
+curl -s -X POST http://localhost:8002/chat \
   -H "Content-Type: application/json" \
   -d '{
     "message": "I need wireless earbuds for running, budget under ₹3000"
@@ -638,20 +620,6 @@ curl -s -X POST http://localhost:8012/chat \
       "category": "Electronics",
       "effective_price": 1104.15,
       "in_stock": true
-    },
-    {
-      "id": "prod_c3d4e5f7a1b2",
-      "name": "Boult Audio Z40 True Wireless",
-      "category": "Electronics",
-      "effective_price": 1299.0,
-      "in_stock": true
-    },
-    {
-      "id": "prod_d4e5f6a2b3c4",
-      "name": "JBL Tune 215TWS True Wireless Earbuds",
-      "category": "Electronics",
-      "effective_price": 2499.0,
-      "in_stock": true
     }
   ],
   "parsed_filters": {
@@ -669,7 +637,7 @@ curl -s -X POST http://localhost:8012/chat \
 Pass the `session_id` from the previous response to continue the conversation:
 
 ```bash
-curl -s -X POST http://localhost:8012/chat \
+curl -s -X POST http://localhost:8002/chat \
   -H "Content-Type: application/json" \
   -d '{
     "session_id": "sess_9a8b7c6d5e4f3a2b",
@@ -677,68 +645,13 @@ curl -s -X POST http://localhost:8012/chat \
   }' | python3 -m json.tool
 ```
 
-**Response** (`200 OK`):
-
-```json
-{
-  "session_id": "sess_9a8b7c6d5e4f3a2b",
-  "reply": "Comparing the battery life:\n\n- **boAt Airdopes 141**: 6 hours per charge from the earbuds, plus 36 hours from the charging case = **42 hours total**.\n- **Boult Audio Z40**: 8 hours per charge from the earbuds, plus 32 hours from the case = **40 hours total**.\n\nThe Airdopes 141 has a slight edge on total playtime (42h vs 40h), though the Z40 lasts longer per individual charge session (8h vs 6h). If you do runs longer than 6 hours without access to the case, the Z40 is the better pick.",
-  "sources": [
-    {
-      "id": "prod_a1b2c3d4e5f6",
-      "name": "boAt Airdopes 141 TWS Earbuds",
-      "category": "Electronics",
-      "effective_price": 1104.15,
-      "in_stock": true
-    }
-  ],
-  "parsed_filters": {
-    "keywords": "wireless earbuds battery",
-    "category": "Electronics",
-    "subcategory": null,
-    "max_price": null,
-    "features": []
-  }
-}
-```
-
 The assistant remembered the context from the first message — it knew which two products were "the first two options" without the user restating them.
 
 #### 3c. Retrieve conversation history
 
 ```bash
-curl -s http://localhost:8012/chat/sess_9a8b7c6d5e4f3a2b/history \
+curl -s http://localhost:8002/chat/sess_9a8b7c6d5e4f3a2b/history \
   | python3 -m json.tool
-```
-
-**Response** (`200 OK`):
-
-```json
-{
-  "session_id": "sess_9a8b7c6d5e4f3a2b",
-  "messages": [
-    {
-      "role": "user",
-      "content": "I need wireless earbuds for running, budget under ₹3000",
-      "created_at": "2026-06-23T10:30:00"
-    },
-    {
-      "role": "assistant",
-      "content": "Great choice for a running companion! ...",
-      "created_at": "2026-06-23T10:30:02"
-    },
-    {
-      "role": "user",
-      "content": "What is the battery life difference between the first two options?",
-      "created_at": "2026-06-23T10:31:00"
-    },
-    {
-      "role": "assistant",
-      "content": "Comparing the battery life: ...",
-      "created_at": "2026-06-23T10:31:01"
-    }
-  ]
-}
 ```
 
 ---
@@ -781,20 +694,9 @@ curl -s -X POST http://localhost:8003/checkout \
   "order_id": "ord_5e6f7a8b9c0d1e2f",
   "status": "pending",
   "subtotal": 24990.0,
-  "discount": 0.0,
-  "coupon_code": null,
   "tax": 4498.2,
   "shipping_charge": 0.0,
   "total": 29488.2,
-  "items": [
-    {
-      "product_id": "prod_f6a1b2c3d4e5",
-      "product_name": "Sony WH-1000XM5 Wireless Noise Cancelling Headphones",
-      "quantity": 1,
-      "unit_price": 24990.0,
-      "subtotal": 24990.0
-    }
-  ],
   "created_at": "2026-06-23T10:45:00"
 }
 ```
@@ -802,38 +704,16 @@ curl -s -X POST http://localhost:8003/checkout \
 #### 4b. Retry with the same key — no duplicate order
 
 ```bash
-# Same Idempotency-Key, same request body
+# Same Idempotency-Key — returns cached response, no second order created
 curl -s -X POST http://localhost:8003/checkout \
   -H "Content-Type: application/json" \
   -H "Idempotency-Key: $IDEM_KEY" \
-  -d '{
-    "cart_id": "cart_1a2b3c4d5e6f",
-    "customer_id": "usr_3f8a2b1c4d5e6f7a",
-    "coupon_code": null,
-    "shipping": {
-      "name": "Priya Sharma",
-      "phone": "9876543210",
-      "address_line": "42, MG Road",
-      "city": "Bengaluru",
-      "state": "Karnataka",
-      "pincode": "560001"
-    }
-  }' | python3 -m json.tool
+  -d '{ ... same body ... }' | python3 -m json.tool
 ```
 
 **Response** (`200 OK` — identical `order_id`, no new order created):
 
-```json
-{
-  "order_id": "ord_5e6f7a8b9c0d1e2f",
-  "status": "pending",
-  "subtotal": 24990.0,
-  "total": 29488.2,
-  ...
-}
-```
-
-The `order_id` is the same as in 4a. The service returned the cached response without creating a second order. This is verified by the `checkout_idempotency_keys` table:
+The `order_id` is the same as in 4a. The service returned the cached response without creating a second order.
 
 ```bash
 # Confirm only one record exists for this key
@@ -855,10 +735,15 @@ pip install pytest httpx
 # Run all API tests
 pytest -v
 
-# Run tests for a specific service
+# Run tests for a specific feature
 pytest test_user_management.py -v
 pytest test_product_catalogue.py -v
 pytest test_checkout.py -v
+
+# Run capstone AI feature tests
+pytest test_forecasting.py -v
+pytest test_feedback_loop.py -v
+pytest test_anomaly_detection.py -v
 ```
 
 ### Load / performance tests (Locust)
@@ -868,21 +753,15 @@ cd tests/performance
 pip install locust
 
 # Interactive mode (opens browser at http://localhost:8089)
-locust -f load_test.py --host http://localhost:8002
+locust -f load_test.py --host http://localhost:8001
 
 # Headless (CI mode): 50 users, 60s run
-locust -f load_test.py --host http://localhost:8002 \
+locust -f load_test.py --host http://localhost:8001 \
   --users 50 --spawn-rate 5 --run-time 60s --headless
-```
 
-After a 60s run you will see:
-
-```
-Name                     # Reqs   Avg     Min    P95    P99   Failures
--------------------------------------------------------------------
-GET /products (list)      2841    43ms    12ms   110ms  198ms  0 (0%)
-POST /search/semantic      342  1241ms   890ms  2180ms 2890ms  0 (0%)
-GET /health               410    4ms     2ms     8ms   12ms   0 (0%)
+# ML-specific load test (forecasting, recommendations, anomaly scan)
+locust -f load_test_ml.py \
+  --users 20 --spawn-rate 2 --run-time 60s --headless
 ```
 
 ---
@@ -897,32 +776,43 @@ ecommerce_pt/
 │   ├── setup_db.sh           ← create PostgreSQL DB + pgvector extension
 │   ├── seed_products.sh      ← load 5K products + generate embeddings
 │   └── start_all.sh          ← start / stop all 13 services
-├── src/
-│   ├── nfr/                  ← shared: circuit_breaker, structured_logging, metrics
-│   ├── user_management/      ← port 8001: JWT auth, GDPR
-│   ├── product_catalogue/    ← port 8002: products, pgvector search
-│   ├── checkout_service/     ← port 8003: cart, idempotent checkout
-│   ├── recommendation_engine/← port 8004: hybrid recommender
-│   ├── inventory_service/    ← port 8005: stock management
-│   ├── order_management/     ← port 8006: order lifecycle, refunds
-│   ├── session_service/      ← port 8007: browsing events
-│   ├── payment_shipping_service/ ← port 8008: Razorpay + Shiprocket
-│   ├── guardrails_service/   ← port 8009: AI safety
-│   ├── multi_agent_system/   ← port 8010: orchestrator + 4 agents
-│   ├── seller_portal/        ← port 8011: B2B KYC + product approval
-│   ├── shopping_assistant/   ← port 8012: RAG pipeline
-│   ├── tool_calling_agent/   ← port 8013: function-calling agent
-│   └── frontend/             ← port 5173: React 18 + Vite
-├── docs/
-│   ├── architecture/
-│   ├── data-flow/
-│   └── design_decisions_and_tradeoffs.md
 ├── requirements/
+│   ├── capstone_features.md  ← AI feature functional + non-functional requirements
 │   ├── functional_requirements.md
 │   └── non_functional_requirements.md
+├── docs/
+│   ├── architecture/
+│   │   └── ml_services_architecture.md  ← component map, service isolation, SSE
+│   ├── data-flow/
+│   │   ├── forecasting_flow.md          ← Ridge + Fourier pipeline
+│   │   ├── feedback_loop_flow.md        ← adaptation multipliers, JSONB schema
+│   │   └── anomaly_detection_flow.md    ← 10 detectors, SSE stream, alert lifecycle
+│   └── design_decisions_and_tradeoffs.md
+├── src/
+│   ├── nfr/                  ← shared: circuit_breaker, structured_logging, metrics
+│   ├── user_management/      ← port 8000: JWT auth, GDPR
+│   ├── product_catalogue/    ← port 8001: products, pgvector search
+│   ├── shopping_assistant/   ← port 8002: RAG pipeline
+│   ├── checkout_service/     ← port 8003: cart, idempotent checkout
+│   ├── order_management/     ← port 8004: order lifecycle, refunds
+│   ├── inventory_service/    ← port 8005: stock management + demand forecasting
+│   ├── recommendation_engine/← port 8006: hybrid CF + feedback loop
+│   ├── tool_calling_agent/   ← port 8007: function-calling agent
+│   ├── session_service/      ← port 8008: browsing events
+│   ├── payment_shipping_service/ ← port 8009: Razorpay + Shiprocket
+│   ├── guardrails_service/   ← port 8010: anomaly detection, AI safety
+│   ├── multi_agent_system/   ← port 8011: orchestrator + 4 specialist agents
+│   ├── seller_portal/        ← port 8012: B2B KYC + product approval
+│   └── frontend/             ← port 3000: React 18 + Vite
 └── tests/
-    ├── api/                  ← pytest integration tests
+    ├── api/                  ← pytest integration tests (13 service test files)
+    │   ├── conftest.py        ← shared fixtures, BASE_URLS, auth helpers
+    │   ├── test_forecasting.py
+    │   ├── test_feedback_loop.py
+    │   └── test_anomaly_detection.py
     └── performance/          ← Locust load tests
+        ├── load_test.py       ← core services
+        └── load_test_ml.py    ← ML endpoints
 ```
 
 ---
@@ -951,3 +841,7 @@ ecommerce_pt/
 **Service starts but `/health` returns 500**
 - The service could not connect to its database. Check the service log: `tail -50 logs/<service>.log`
 - For AI services, also check that Azure OpenAI credentials are set correctly.
+
+**SSE stream disconnects immediately**
+- Ensure `X-Accel-Buffering: no` header is set on the nginx/reverse proxy in front of the service.
+- For direct uvicorn, SSE streams without proxy buffering issues — connect directly to port 8010.

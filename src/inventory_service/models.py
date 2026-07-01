@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, Text
+from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, Text, Date
 from database import Base
 
 
@@ -86,3 +86,50 @@ class Alert(Base):
     resolved_at     = Column(DateTime, nullable=True)
     created_at      = Column(DateTime, default=datetime.utcnow)
     updated_at      = Column(DateTime, default=datetime.utcnow)
+
+
+class DemandHistory(Base):
+    """Daily category-level demand — seeded synthetic + actual sales."""
+    __tablename__ = "demand_history"
+    id         = Column(String,   primary_key=True, default=new_uuid)
+    category   = Column(String,   nullable=False, index=True)
+    date       = Column(Date,     nullable=False)
+    units_sold = Column(Integer,  nullable=False, default=0)
+    num_orders = Column(Integer,  default=0)
+    avg_price  = Column(Float,    default=0.0)
+    revenue    = Column(Float,    default=0.0)
+    source     = Column(String,   default="seeded")   # seeded | actual
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class DemandForecast(Base):
+    """ML model 30-day forward predictions per category."""
+    __tablename__ = "demand_forecasts"
+    id               = Column(String,   primary_key=True, default=new_uuid)
+    category         = Column(String,   nullable=False, index=True)
+    forecast_date    = Column(Date,     nullable=False)
+    predicted_units  = Column(Float,    nullable=False)
+    lower_bound      = Column(Float,    nullable=True)
+    upper_bound      = Column(Float,    nullable=True)
+    model_name       = Column(String,   default="ridge_fourier_v1")
+    rmse             = Column(Float,    nullable=True)
+    confidence_score = Column(Float,    nullable=True)
+    generated_at     = Column(DateTime, default=datetime.utcnow)
+
+
+class RestockingAlert(Base):
+    """Automated restocking alerts generated from demand forecasting."""
+    __tablename__ = "restock_alerts"
+    id                       = Column(String,   primary_key=True, default=new_uuid)
+    category                 = Column(String,   nullable=False, index=True)
+    current_stock            = Column(Integer,  nullable=False)
+    avg_daily_demand         = Column(Float,    nullable=False)
+    forecasted_demand_30d    = Column(Integer,  nullable=False)
+    days_until_stockout      = Column(Integer,  nullable=True)
+    recommended_reorder_qty  = Column(Integer,  nullable=False)
+    severity                 = Column(String,   nullable=False)   # critical | warning
+    status                   = Column(String,   default="open")   # open | acknowledged
+    acknowledged_by          = Column(String,   nullable=True)
+    acknowledged_at          = Column(DateTime, nullable=True)
+    triggered_at             = Column(DateTime, default=datetime.utcnow)
+    created_at               = Column(DateTime, default=datetime.utcnow)

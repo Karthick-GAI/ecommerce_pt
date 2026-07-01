@@ -151,18 +151,23 @@ def get_user_based_cf(db: Session, customer_id: str, limit: int = 20) -> list[di
 
 def get_cf_from_browsing(db: Session, customer_id: str, limit: int = 20) -> list[dict]:
     """
-    Lightweight CF using browsing_events (purchase + add_to_cart signals).
-    Used when a customer exists in browsing history but has no dataset orders.
+    Lightweight CF using browsing_events + rec_interactions (purchase + add_to_cart signals).
+    Used when a customer has limited dataset order history.
     """
     sql = text("""
         WITH my_products AS (
-            SELECT DISTINCT product_id
-            FROM browsing_events
+            -- dataset browsing events
+            SELECT DISTINCT product_id FROM browsing_events
             WHERE user_id = :cid
               AND event_type IN ('purchase', 'add_to_cart', 'wishlist')
+            UNION
+            -- app user rec_interactions
+            SELECT DISTINCT product_id FROM rec_interactions
+            WHERE customer_id = :cid
+              AND interaction_type IN ('purchase', 'add_to_cart', 'wishlist')
         ),
         similar_users AS (
-            SELECT be.user_id, COUNT(*) AS overlap
+            SELECT be.user_id AS uid, COUNT(*) AS overlap
             FROM browsing_events be
             WHERE be.product_id IN (SELECT product_id FROM my_products)
               AND be.event_type IN ('purchase', 'add_to_cart', 'wishlist')
@@ -174,7 +179,7 @@ def get_cf_from_browsing(db: Session, customer_id: str, limit: int = 20) -> list
         candidate_scores AS (
             SELECT be.product_id, SUM(su.overlap) AS score
             FROM similar_users su
-            JOIN browsing_events be ON be.user_id = su.user_id
+            JOIN browsing_events be ON be.user_id = su.uid
             WHERE be.event_type IN ('purchase', 'add_to_cart')
               AND be.product_id NOT IN (SELECT product_id FROM my_products)
             GROUP BY be.product_id
@@ -202,13 +207,25 @@ def get_cf_from_browsing(db: Session, customer_id: str, limit: int = 20) -> list
 
 
 def get_user_purchase_count(db: Session, customer_id: str) -> int:
-    """Number of unique products purchased by customer in dataset orders."""
-    sql = text("""
+    """Number of unique products purchased — dataset orders + checkout service orders."""
+    # Dataset orders (pre-seeded history)
+    sql_dataset = text("""
         SELECT COUNT(DISTINCT item.product_id)
         FROM orders o,
         LATERAL jsonb_to_recordset(o.cart_activity)
             AS item(product_id text, quantity int, unit_price float)
         WHERE o.user_id = :cid
     """)
-    result = db.execute(sql, {"cid": customer_id}).scalar()
-    return int(result or 0)
+    count_dataset = int(db.execute(sql_dataset, {"cid": customer_id}).scalar() or 0)
+
+    # Live checkout service orders (app users)
+    sql_checkout = text("""
+        SELECT COUNT(DISTINCT coi.product_id)
+        FROM checkout_order_items coi
+        JOIN checkout_orders co ON co.id = coi.order_id
+        WHERE co.customer_id = :cid
+          AND co.status IN ('confirmed', 'paid', 'shipped', 'delivered')
+    """)
+    count_checkout = int(db.execute(sql_checkout, {"cid": customer_id}).scalar() or 0)
+
+    return count_dataset + count_checkout

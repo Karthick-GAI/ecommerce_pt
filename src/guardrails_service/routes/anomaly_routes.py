@@ -5,6 +5,8 @@ POST /anomaly/scan              — trigger full or targeted scan
 POST /anomaly/check/order       — on-demand check for a specific order
 POST /anomaly/check/user        — on-demand check for a specific user
 POST /anomaly/check/payment     — on-demand check for a customer's payment pattern
+GET  /anomaly/dashboard         — dashboard KPIs, hourly trend, entity risk table
+GET  /anomaly/stream            — SSE real-time alert stream
 GET  /anomaly/alerts            — list all alerts (filterable)
 GET  /anomaly/alerts/stats      — severity + type distribution
 GET  /anomaly/alerts/{id}       — single alert
@@ -12,9 +14,12 @@ POST /anomaly/alerts/{id}/acknowledge — acknowledge an alert
 POST /anomaly/alerts/{id}/resolve     — resolve an alert
 POST /anomaly/alerts/{id}/false-positive — mark as false positive
 """
-from datetime import datetime, timezone
+import asyncio
+import json
+from datetime import datetime, timezone, timedelta
 from typing import Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from database import get_db
@@ -50,6 +55,145 @@ def _fmt(a: AnomalyAlert) -> dict:
         "resolved_by":   a.resolved_by,
         "resolution_note": a.resolution_note,
     }
+
+
+# ── GET /anomaly/dashboard ────────────────────────────────────────────────────
+
+@router.get("/dashboard")
+def get_dashboard(db: Session = Depends(get_db)):
+    """Comprehensive KPIs, hourly trend, alert-type breakdown, and top risky entities."""
+    now     = datetime.now(timezone.utc)
+    day_ago = now - timedelta(hours=24)
+
+    open_q  = db.query(AnomalyAlert).filter(AnomalyAlert.status == "open")
+    kpis = {
+        "open":        open_q.count(),
+        "critical":    open_q.filter(AnomalyAlert.severity == "critical").count(),
+        "high":        open_q.filter(AnomalyAlert.severity == "high").count(),
+        "medium":      open_q.filter(AnomalyAlert.severity == "medium").count(),
+        "low":         open_q.filter(AnomalyAlert.severity == "low").count(),
+        "resolved_24h": db.query(AnomalyAlert).filter(
+            AnomalyAlert.resolved_at >= day_ago
+        ).count(),
+        "new_24h": db.query(AnomalyAlert).filter(
+            AnomalyAlert.detected_at >= day_ago
+        ).count(),
+    }
+
+    # Hourly trend for last 24h
+    recent = db.query(AnomalyAlert).filter(AnomalyAlert.detected_at >= day_ago).all()
+    hourly_raw: dict[int, int] = {}
+    for a in recent:
+        h = a.detected_at.hour if hasattr(a.detected_at, "hour") else 0
+        hourly_raw[h] = hourly_raw.get(h, 0) + 1
+    hourly_trend = [{"hour": h, "count": hourly_raw.get(h, 0)} for h in range(24)]
+
+    # Alert type breakdown (open only)
+    by_type = dict(
+        db.query(AnomalyAlert.anomaly_type, func.count(AnomalyAlert.id))
+        .filter(AnomalyAlert.status == "open")
+        .group_by(AnomalyAlert.anomaly_type)
+        .all()
+    )
+
+    # Top risky entities (open + acknowledged, ranked by max risk score)
+    top_rows = (
+        db.query(
+            AnomalyAlert.entity_id,
+            AnomalyAlert.entity_type,
+            func.count(AnomalyAlert.id).label("alert_count"),
+            func.max(AnomalyAlert.risk_score).label("max_risk"),
+            func.sum(AnomalyAlert.risk_score).label("total_risk"),
+        )
+        .filter(AnomalyAlert.status.in_(["open", "acknowledged"]))
+        .group_by(AnomalyAlert.entity_id, AnomalyAlert.entity_type)
+        .order_by(func.max(AnomalyAlert.risk_score).desc())
+        .limit(8)
+        .all()
+    )
+
+    return {
+        "kpis":         kpis,
+        "hourly_trend": hourly_trend,
+        "by_type":      by_type,
+        "top_entities": [
+            {
+                "entity_id":   r.entity_id,
+                "entity_type": r.entity_type,
+                "alert_count": r.alert_count,
+                "max_risk":    r.max_risk,
+                "total_risk":  int(r.total_risk or 0),
+            }
+            for r in top_rows
+        ],
+        "generated_at": str(now),
+    }
+
+
+# ── GET /anomaly/stream ───────────────────────────────────────────────────────
+
+@router.get("/stream")
+async def stream_alerts():
+    """
+    Server-Sent Events stream.
+    On connect: sends all current open alerts as 'alert' events, then a
+    'connected' event with the snapshot count.
+    Ongoing: heartbeat every 10 s; checks for new alerts every 30 s.
+    """
+    async def generate():
+        from database import SessionLocal
+        db = SessionLocal()
+        try:
+            open_alerts = (
+                db.query(AnomalyAlert)
+                .filter(AnomalyAlert.status == "open")
+                .order_by(AnomalyAlert.detected_at.desc())
+                .limit(100)
+                .all()
+            )
+            for a in open_alerts:
+                yield f"event: alert\ndata: {json.dumps(_fmt(a))}\n\n"
+
+            yield (
+                f"event: connected\n"
+                f"data: {json.dumps({'open_count': len(open_alerts), 'status': 'live'})}\n\n"
+            )
+
+            last_check = datetime.now(timezone.utc)
+            tick = 0
+
+            while True:
+                await asyncio.sleep(10)
+                tick += 1
+
+                if tick % 3 == 0:
+                    db.expire_all()
+                    new = (
+                        db.query(AnomalyAlert)
+                        .filter(AnomalyAlert.detected_at > last_check)
+                        .order_by(AnomalyAlert.detected_at.asc())
+                        .all()
+                    )
+                    for a in new:
+                        yield f"event: alert\ndata: {json.dumps(_fmt(a))}\n\n"
+                    last_check = datetime.now(timezone.utc)
+
+                yield f"event: heartbeat\ndata: {json.dumps({'tick': tick})}\n\n"
+
+        except GeneratorExit:
+            pass
+        finally:
+            db.close()
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection":    "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # ── POST /anomaly/scan ────────────────────────────────────────────────────────

@@ -542,6 +542,147 @@ def detect_payment_replay(db: Session) -> list[AnomalyAlert]:
     return alerts
 
 
+# ── 9. New account high-value order ──────────────────────────────────────────
+
+def detect_new_account_high_value(db: Session) -> list[AnomalyAlert]:
+    """
+    Customers registered within the last 7 days who placed orders above the
+    75th percentile of historical order amounts.
+    Newly-registered high-spend accounts are a common account-fraud vector.
+    """
+    now = datetime.now(timezone.utc)
+    new_cutoff = now - timedelta(days=7)
+
+    try:
+        db.execute(text("SELECT 1 FROM customers LIMIT 1"))
+    except Exception:
+        return []
+
+    hist_rows = db.query(CheckoutOrder.total).filter(
+        CheckoutOrder.total != None,
+        CheckoutOrder.total > 0,
+    ).all()
+    amounts = sorted(r.total for r in hist_rows if r.total)
+    if len(amounts) < 10:
+        return []
+
+    p75 = amounts[int(len(amounts) * 0.75)]
+    p95 = amounts[int(len(amounts) * 0.95)]
+
+    try:
+        rows = db.execute(text("""
+            SELECT c.id AS customer_id, co.id AS order_id, co.total
+            FROM customers c
+            JOIN checkout_orders co ON co.customer_id = c.id
+            WHERE c.created_at >= :cutoff
+              AND co.total > :p75
+            ORDER BY co.total DESC
+            LIMIT 50
+        """), {"cutoff": new_cutoff, "p75": p75}).fetchall()
+    except Exception:
+        return []
+
+    alerts = []
+    for r in rows:
+        risk = min(100, 50 + int((float(r.total) / p75 - 1) * 20))
+        alerts.append(AnomalyAlert(
+            anomaly_type="new_account_high_value",
+            entity_type="customer",
+            entity_id=str(r.customer_id),
+            severity="critical" if float(r.total) >= p95 else "high",
+            title=f"New account high-value order: ₹{r.total:,.0f}",
+            description=(
+                f"A customer registered within 7 days placed a ₹{r.total:,.0f} order, "
+                f"exceeding the 75th percentile threshold of ₹{p75:,.0f}. "
+                f"High-spend new accounts are a common fraud signal."
+            ),
+            evidence={
+                "customer_id":   str(r.customer_id),
+                "order_id":      str(r.order_id),
+                "order_amount":  float(r.total),
+                "p75_threshold": round(p75, 2),
+                "p95_threshold": round(p95, 2),
+                "account_age":   "< 7 days",
+            },
+            risk_score=risk,
+            rule_name="new_account_high_value",
+        ))
+    return alerts
+
+
+# ── 10. Rapid inventory drain ─────────────────────────────────────────────────
+
+def detect_inventory_drain(db: Session) -> list[AnomalyAlert]:
+    """
+    Products where units ordered in the last 24 h exceed 50% of remaining
+    inventory_count. Signals coordinated purchasing to drain stock.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=24)
+
+    try:
+        rows = db.execute(text("""
+            SELECT item.product_id,
+                   SUM(item.quantity) AS units_ordered
+            FROM orders o,
+            LATERAL jsonb_to_recordset(o.cart_activity)
+                AS item(product_id text, quantity int)
+            WHERE o.created_at >= :cutoff
+              AND item.quantity > 0
+            GROUP BY item.product_id
+            HAVING SUM(item.quantity) > 10
+            ORDER BY units_ordered DESC
+            LIMIT 100
+        """), {"cutoff": cutoff}).fetchall()
+    except Exception:
+        return []
+
+    if not rows:
+        return []
+
+    product_ids = [r.product_id for r in rows]
+    products = {
+        str(p.id): p
+        for p in db.query(Product).filter(Product.id.in_(product_ids)).all()
+    }
+
+    alerts = []
+    for r in rows:
+        p = products.get(str(r.product_id))
+        if not p:
+            continue
+        stock = p.inventory_count or 0
+        if stock <= 0:
+            continue
+        drain_ratio = float(r.units_ordered) / float(stock)
+        if drain_ratio < 0.5:
+            continue
+        risk = min(100, int(40 + drain_ratio * 40))
+        alerts.append(AnomalyAlert(
+            anomaly_type="inventory_drain",
+            entity_type="product",
+            entity_id=str(p.id),
+            severity=_severity_from_risk(risk),
+            title=f"Rapid inventory drain: {r.units_ordered} units of '{p.name}' in 24h",
+            description=(
+                f"{int(r.units_ordered)} units of '{p.name}' ({p.category}) were ordered "
+                f"in the last 24 hours, consuming {drain_ratio:.0%} of current stock "
+                f"({int(stock)} units remaining). Possible coordinated buying."
+            ),
+            evidence={
+                "product_id":      str(p.id),
+                "product_name":    p.name,
+                "category":        p.category,
+                "units_ordered":   int(r.units_ordered),
+                "current_stock":   int(stock),
+                "drain_ratio_pct": round(drain_ratio * 100, 1),
+            },
+            risk_score=risk,
+            rule_name="inventory_drain",
+        ))
+    return alerts
+
+
 # ── Deduplication helper ──────────────────────────────────────────────────────
 
 def dedupe_alerts(

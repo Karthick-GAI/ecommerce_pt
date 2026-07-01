@@ -8,8 +8,9 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from dotenv import load_dotenv
+import httpx
 
 load_dotenv()
 
@@ -45,6 +46,20 @@ app.include_router(enrichment_routes.router)
 @app.get("/", include_in_schema=False)
 def root():
     return RedirectResponse(url="/docs")
+
+
+@app.get("/imgproxy/{w}/{h}/{keywords}", tags=["System"], include_in_schema=False)
+async def image_proxy(w: int, h: int, keywords: str, lock: int = 0):
+    """Fetch loremflickr image server-side (follows redirects) so the browser
+    never hits external CDNs directly — fixes images in firewalled environments."""
+    url = f"https://loremflickr.com/{w}/{h}/{keywords}?lock={lock}"
+    try:
+        async with httpx.AsyncClient(follow_redirects=True, timeout=8.0) as client:
+            r = await client.get(url)
+        content_type = r.headers.get("content-type", "image/jpeg")
+        return Response(content=r.content, media_type=content_type)
+    except Exception:
+        return Response(status_code=502)
 
 
 @app.get("/health", tags=["System"])

@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { sessionsApi } from '../api/index.js'
 import { useAuth } from './AuthContext.jsx'
+import { productImageUrl } from '../utils/productImage.js'
 
 const CartCtx = createContext(null)
 
@@ -35,14 +36,20 @@ export function CartProvider({ children }) {
       localStorage.removeItem('sessionId')
       sid = null
     }
-    try {
-      const res = await sessionsApi.create(user?.id)
-      sid = res.data.session_id
-      localStorage.setItem('sessionId', sid)
-      setSessionId(sid)
-      setItems([])
-    } catch (e) {
-      console.warn('Could not create session:', e.message)
+    // Try to create a session linked to the user; fall back to anonymous
+    // if the user's ID isn't in the dataset customers table.
+    for (const customerId of [user?.id || null, null]) {
+      try {
+        const res = await sessionsApi.create(customerId)
+        sid = res.data.session_id
+        localStorage.setItem('sessionId', sid)
+        setSessionId(sid)
+        setItems([])
+        return
+      } catch (e) {
+        if (customerId === null) console.warn('Could not create session:', e.message)
+        // else retry as anonymous
+      }
     }
   }
 
@@ -65,7 +72,9 @@ export function CartProvider({ children }) {
         product_name: product.name,
         unit_price:   product.effective_price ?? product.price,
         quantity:     qty,
-        image_url:    product.primary_image,
+        image_url:    productImageUrl(product, 80, 80),
+        category:     product.category || '',
+        subcategory:  product.subcategory || '',
       })
       await refreshCart()
     } finally {

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { ordersApi, shippingApi } from '../api/index.js'
 import { useAuth } from '../store/AuthContext.jsx'
 import { useToast } from '../store/ToastContext.jsx'
+import { productImageUrl } from '../utils/productImage.js'
 
 const CANCELLABLE = ['pending', 'confirmed', 'processing']
 
@@ -56,11 +57,14 @@ export default function Orders() {
   const [refund, setRefund]           = useState(null)
   const [notifications, setNotifications] = useState([])
   const [tab, setTab]                 = useState('timeline') // timeline | notifications
-  const [cancelling, setCancelling]   = useState(false)
-  const [approving, setApproving]     = useState(false)
-  const [shipment, setShipment]       = useState(null)
-  const [tracking, setTracking]       = useState(null)
-  const [shipLoading, setShipLoading] = useState(false)
+  const [cancelling, setCancelling]       = useState(false)
+  const [approving, setApproving]         = useState(false)
+  const [requestingRefund, setRequestingRefund] = useState(false)
+  const [refundReason, setRefundReason]   = useState('')
+  const [showRefundForm, setShowRefundForm] = useState(false)
+  const [shipment, setShipment]           = useState(null)
+  const [tracking, setTracking]           = useState(null)
+  const [shipLoading, setShipLoading]     = useState(false)
 
   const loadOrders = useCallback(async () => {
     if (!user) return
@@ -85,6 +89,8 @@ export default function Orders() {
     setShipment(null)
     setTracking(null)
     setTab('timeline')
+    setShowRefundForm(false)
+    setRefundReason('')
 
     try {
       const r = await ordersApi.get(oid)
@@ -100,11 +106,33 @@ export default function Orders() {
 
   async function loadNotifications() {
     if (!user) return
+    const oid = selected?.order_id || selected?.id
     try {
       const r = await ordersApi.notifications(user.id)
-      const oid = selected?.order_id || selected?.id
-      setNotifications((r.data.notifications || []).filter(n => n.order_id === oid))
+      const orderNotifs = (r.data.notifications || []).filter(n => n.order_id === oid && n.channel === 'push')
+      setNotifications(orderNotifs)
+      // Auto-mark all as read
+      const unreadIds = orderNotifs.filter(n => !n.is_read).map(n => n.id)
+      await Promise.allSettled(unreadIds.map(id => ordersApi.markNotificationRead(id)))
     } catch { /* ignore */ }
+  }
+
+  async function handleRequestRefund() {
+    const oid = selected?.order_id || selected?.id
+    if (!oid) return
+    setRequestingRefund(true)
+    try {
+      await ordersApi.requestRefund(oid, { reason: refundReason || 'Customer requested refund' })
+      toast('Refund request submitted. Pending review.', 'success')
+      setShowRefundForm(false)
+      setRefundReason('')
+      const rf = await ordersApi.getRefund(oid)
+      setRefund(rf.data)
+    } catch (err) {
+      toast(err.response?.data?.detail || 'Could not submit refund request.', 'error')
+    } finally {
+      setRequestingRefund(false)
+    }
   }
 
   async function loadShipping() {
@@ -247,6 +275,44 @@ export default function Orders() {
                   </button>
                 )}
 
+                {/* Request Refund — for delivered orders with no refund yet */}
+                {currentStatus === 'delivered' && !refund && (
+                  <div style={{ marginBottom: 16 }}>
+                    {!showRefundForm ? (
+                      <button
+                        className="btn btn-lg"
+                        style={{ width: '100%', background: 'rgba(80,70,229,.07)', color: 'var(--primary)', border: '1.5px solid rgba(80,70,229,.25)', fontWeight: 700 }}
+                        onClick={() => setShowRefundForm(true)}
+                      >
+                        ↩ Request Refund
+                      </button>
+                    ) : (
+                      <div style={{ padding: '14px 16px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--ground)' }}>
+                        <p style={{ fontWeight: 700, fontSize: '0.875rem', marginBottom: 10 }}>↩ Request Refund</p>
+                        <div className="form-group" style={{ marginBottom: 10 }}>
+                          <label style={{ fontSize: '0.8rem' }}>Reason</label>
+                          <textarea
+                            className="input"
+                            style={{ resize: 'vertical', minHeight: 72, fontSize: '0.85rem' }}
+                            placeholder="Describe the issue (damaged, wrong item, etc.)"
+                            value={refundReason}
+                            onChange={e => setRefundReason(e.target.value)}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => { setShowRefundForm(false); setRefundReason('') }}>
+                            Cancel
+                          </button>
+                          <button className="btn btn-primary btn-sm" style={{ flex: 1 }}
+                            onClick={handleRequestRefund} disabled={requestingRefund}>
+                            {requestingRefund ? 'Submitting…' : 'Submit Refund Request'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Refund panel */}
                 {refund && (
                   <div style={{ marginBottom: 16, padding: '14px 16px', borderRadius: 10, border: '1.5px solid var(--border)', background: 'var(--ground)' }}>
@@ -332,7 +398,7 @@ export default function Orders() {
                   <div>
                     {(detail?.items || selected?.items || []).map((item, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                        <img src={`https://picsum.photos/seed/${item.product_id}/56/56`} alt={item.product_name}
+                        <img src={productImageUrl({ id: item.product_id, category: item.category, subcategory: item.subcategory }, 56, 56)} alt={item.product_name}
                           style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
                         <div style={{ flex: 1 }}>
                           <p style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.product_name}</p>

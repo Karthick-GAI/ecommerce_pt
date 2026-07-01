@@ -72,6 +72,8 @@ export const productsApi = {
   get:  (id)           => productApi.get(`/products/${id}`),
   search: (query, params = {}) =>
     productApi.get('/search/keyword', { params: { q: query, ...params } }),
+  semanticSearch: (query, params = {}) =>
+    productApi.get('/search/semantic', { params: { q: query, ...params } }),
   categories: () => productApi.get('/categories'),
   featured: () => productApi.get('/products', { params: { limit: 8, sort_by: 'rating', order: 'desc' } }),
 }
@@ -116,10 +118,12 @@ export const ordersApi = {
   cancel: (id, reason)  => orderApi.post(`/orders/${id}/cancel`, { reason, cancelled_by: 'customer' }),
   getRefund: (id)       => orderApi.get(`/orders/${id}/refund`),
   approveRefund: (refundId) => orderApi.post(`/refunds/${refundId}/approve`, {}),
+  requestRefund: (id, data) => orderApi.post(`/orders/${id}/refund`, data),
   notifications: (customerId) =>
     orderApi.get(`/notifications/customer/${customerId}`),
   markRead: (customerId) =>
     orderApi.put(`/notifications/customer/${customerId}/read-all`),
+  markNotificationRead: (id) => orderApi.put(`/notifications/${id}/read`),
 }
 
 // ── Recommendations ───────────────────────────────────────────────────────────
@@ -130,8 +134,13 @@ export const recommendationsApi = {
   similar:      (productId, params)  => recApi.get(`/recommendations/similar/${productId}`, { params }),
   boughtTogether:(productId, params) => recApi.get(`/recommendations/bought-together/${productId}`, { params }),
   trending:     (params)             => recApi.get('/recommendations/trending', { params }),
+  topViewed:    (params)             => recApi.get('/recommendations/top-viewed', { params }),
   deals:        (params)             => recApi.get('/recommendations/deals', { params }),
   newArrivals:  (params)             => recApi.get('/recommendations/new-arrivals', { params }),
+}
+
+export const interactionsApi = {
+  log: (data) => recApi.post('/recommendations/interactions', data),
 }
 
 // ── Inventory (ops) ───────────────────────────────────────────────────────────
@@ -150,6 +159,13 @@ export const alertsApi = {
   acknowledge: (alertId, data) => invApi.post(`/alerts/${alertId}/acknowledge`, data),
   resolve:     (alertId)    => invApi.post(`/alerts/${alertId}/resolve`, {}),
   bulkAcknowledge: (data)   => invApi.post('/alerts/bulk-acknowledge', data),
+}
+
+export const alertRulesApi = {
+  list:   ()          => invApi.get('/alert-rules'),
+  create: (data)      => invApi.post('/alert-rules', data),
+  update: (id, data)  => invApi.put(`/alert-rules/${id}`, data),
+  remove: (id)        => invApi.delete(`/alert-rules/${id}`),
 }
 
 // ── Payment & Shipping (port 8009) ───────────────────────────────────────────
@@ -186,9 +202,12 @@ export const guardrailsRulesApi = {
 export const guardrailsAnomalyApi = {
   scan:         (type = 'full') => guardrailsApiClient.post(`/anomaly/scan?scan_type=${type}`),
   alerts:       (params = {})   => guardrailsApiClient.get('/anomaly/alerts', { params }),
+  stats:        ()               => guardrailsApiClient.get('/anomaly/alerts/stats'),
+  dashboard:    ()               => guardrailsApiClient.get('/anomaly/dashboard'),
   acknowledge:  (id)            => guardrailsApiClient.post(`/anomaly/alerts/${id}/acknowledge`),
   resolve:      (id, data)      => guardrailsApiClient.post(`/anomaly/alerts/${id}/resolve`, data),
   falsePositive:(id, data)      => guardrailsApiClient.post(`/anomaly/alerts/${id}/false-positive`, data),
+  streamUrl:    ()              => 'http://localhost:8010/anomaly/stream',
 }
 
 export const guardrailsAnalyticsApi = {
@@ -198,9 +217,10 @@ export const guardrailsAnalyticsApi = {
 // ── Shopping Assistant ────────────────────────────────────────────────────────
 
 export const assistantApi = {
-  chat: (message, sessionId) =>
-    chatApi.post('/chat', { message, session_id: sessionId }),
-  history: (sessionId) => chatApi.get(`/chat/${sessionId}/history`),
+  chat: (message, sessionId, userId) =>
+    chatApi.post('/chat', { message, session_id: sessionId || undefined, user_id: userId || undefined }),
+  history:      (sessionId) => chatApi.get(`/chat/${sessionId}/history`),
+  clearSession: (sessionId) => chatApi.delete(`/chat/${sessionId}`),
 }
 
 // ── AI Agent ─────────────────────────────────────────────────────────────────
@@ -212,4 +232,38 @@ export const agentChatApi = {
       session_id:  sessionId  || undefined,
       customer_id: customerId || undefined,
     }),
+}
+
+// ── Feedback Loop ─────────────────────────────────────────────────────────────
+
+export const feedbackApi = {
+  /**
+   * Record explicit feedback: thumbs_up | thumbs_down | not_interested.
+   * @param {{ customer_id, product_id, feedback_type, rec_strategy? }} data
+   */
+  give:      (data)          => recApi.post('/feedback', data),
+
+  /** Full feedback history for a customer (optional type filter + pagination). */
+  history:   (cid, params={})=> recApi.get(`/feedback/${cid}`, { params }),
+
+  /** Current adaptation weights + recent events for a customer. */
+  stats:     (cid)           => recApi.get(`/feedback/${cid}/stats`),
+
+  /** Wipe all learned adaptation weights (start fresh). */
+  reset:     (cid)           => recApi.post(`/feedback/${cid}/reset`),
+
+  /** Service-wide loop performance metrics over N days. */
+  loopStats: (params={})     => recApi.get('/feedback/loop/stats', { params }),
+}
+
+// ── Demand Forecasting ────────────────────────────────────────────────────────
+
+export const forecastApi = {
+  summary:       ()           => invApi.get('/forecast/summary'),
+  categories:    ()           => invApi.get('/forecast/categories'),
+  category:      (cat)        => invApi.get(`/forecast/category/${encodeURIComponent(cat)}`),
+  restockAlerts: (params = {})=> invApi.get('/forecast/restock-alerts', { params }),
+  acknowledge:   (id, data)   => invApi.post(`/forecast/restock-alerts/${id}/acknowledge`, data),
+  train:         ()           => invApi.post('/forecast/train'),
+  refreshAlerts: ()           => invApi.post('/forecast/refresh-alerts'),
 }

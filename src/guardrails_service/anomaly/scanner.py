@@ -18,6 +18,8 @@ from anomaly.detectors import (
     detect_bot_behavior,
     detect_bulk_purchases,
     detect_payment_replay,
+    detect_new_account_high_value,
+    detect_inventory_drain,
     dedupe_alerts,
 )
 
@@ -31,6 +33,8 @@ DETECTORS = [
     ("bot_behavior",     detect_bot_behavior),
     ("bulk_purchase",    detect_bulk_purchases),
     ("payment_replay",   detect_payment_replay),
+    ("new_account",      detect_new_account_high_value),
+    ("inventory_drain",  detect_inventory_drain),
 ]
 
 
@@ -104,8 +108,9 @@ def run_targeted_scan(
         "order":     [detect_order_amount_anomalies, detect_rapid_ordering, detect_bulk_purchases],
         "payment":   [detect_payment_failure_spree, detect_payment_replay],
         "search":    [detect_search_injection, detect_bot_behavior],
-        "inventory": [detect_inventory_anomalies],
-        "user":      [detect_rapid_ordering, detect_payment_failure_spree, detect_bot_behavior],
+        "inventory": [detect_inventory_anomalies, detect_inventory_drain],
+        "user":      [detect_rapid_ordering, detect_payment_failure_spree,
+                      detect_bot_behavior, detect_new_account_high_value],
     }
     detectors = target_map.get(target, [])
     if not detectors:

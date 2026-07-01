@@ -14,6 +14,9 @@ class SourceProduct(BaseModel):
     category: str
     effective_price: float
     in_stock: bool
+    primary_image: Optional[str] = None
+    rating_avg: Optional[float] = None
+    rating_count: Optional[int] = None
 
 
 class ChatResponse(BaseModel):

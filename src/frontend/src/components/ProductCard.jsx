@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../store/CartContext.jsx'
 import { useToast } from '../store/ToastContext.jsx'
+import { productImageUrl } from '../utils/productImage.js'
 
 export default function ProductCard({ product }) {
   const { addItem } = useCart()
@@ -25,7 +26,7 @@ export default function ProductCard({ product }) {
     >
       <div style={styles.imgWrap}>
         <img
-          src={product.primary_image || `https://picsum.photos/seed/${product.id}/400/300`}
+          src={productImageUrl(product)}
           alt={product.name}
           style={styles.img}
           loading="lazy"
